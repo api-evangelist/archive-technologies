@@ -1,0 +1,45 @@
+generated: '2026-07-18'
+method: searched
+source: https://api-docs.archive.com
+description: >-
+  Archive's public GraphQL API authenticates with a workspace-scoped bearer token generated
+  in the Archive app under Settings -> API (compatible plans only). Every request also
+  carries a WORKSPACE-ID header (workspace UUID) to scope the query to a workspace or agency.
+  Separately, Archive's hosted MCP server uses OAuth 2.0 (authorization code + PKCE) with a
+  single "mcp" scope. No scopes are documented for the direct GraphQL bearer token.
+summary:
+  types: [http, oauth2]
+  api_key_in: [header]
+  oauth2_flows: [authorizationCode]
+schemes:
+- name: bearerAuth
+  type: http
+  scheme: bearer
+  bearerFormat: opaque token, prefix arch_live_
+  in: header
+  header: Authorization
+  description: >-
+    Workspace API token. Passed as `Authorization: Bearer [example key]`. Generated in the
+    Archive UI (Settings -> API). Scoped per workspace/agency; must accompany the
+    WORKSPACE-ID header.
+  sources: [https://api-docs.archive.com]
+- name: workspaceId
+  type: apiKey
+  in: header
+  parameterName: WORKSPACE-ID
+  description: >-
+    Workspace UUID identifying which workspace the token operates against. Required for
+    workspace-scoped queries; passed as a header, never in the request body.
+  sources: [https://api-docs.archive.com]
+- name: mcpOAuth
+  type: oauth2
+  description: >-
+    OAuth 2.0 authorization used by the hosted MCP server (app.archive.com/api/v2/mcp).
+  flows:
+  - flow: authorizationCode
+    authorizationUrl: https://app.archive.com/oauth/authorize
+    tokenUrl: https://app.archive.com/oauth/token
+    registrationUrl: https://app.archive.com/oauth/register
+    codeChallengeMethods: [S256]
+    scopes: [mcp]
+  sources: [https://app.archive.com/.well-known/oauth-authorization-server]
