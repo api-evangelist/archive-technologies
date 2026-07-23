@@ -1,0 +1,32 @@
+generated: '2026-07-18'
+method: searched
+source: live probes of /.well-known/ on Archive hosts
+description: >-
+  Results of probing the /.well-known/ discovery surface for the Archive API host
+  (https://app.archive.com) and the marketing host (https://archive.com). Status is the
+  HTTP code observed at fetch time. Two OAuth discovery documents were served as real JSON
+  and saved verbatim; they describe Archive's OAuth authorization server and the MCP
+  protected resource (RFC 8414 + RFC 9728), used by the hosted MCP server.
+hosts:
+- host: https://app.archive.com
+  documents:
+  - path: /.well-known/oauth-authorization-server
+    status: 200
+    file: archive-technologies-oauth-authorization-server.json
+  - path: /.well-known/oauth-protected-resource
+    status: 200
+    file: archive-technologies-oauth-protected-resource.json
+  - path: /.well-known/security.txt
+    status: 404
+  - path: /.well-known/openid-configuration
+    status: 404
+  - path: /.well-known/api-catalog
+    status: 404
+- host: https://archive.com
+  documents:
+  - path: /.well-known/security.txt
+    status: 404
+  - path: /.well-known/oauth-authorization-server
+    status: 404
+  - path: /.well-known/ai-plugin.json
+    status: 404

@@ -1,0 +1,17 @@
+generated: '2026-07-18'
+method: generated
+description: >-
+  Packaged Agent Skills for the Archive GraphQL API, generated from Archive's documented
+  query/mutation surface (api-docs.archive.com) and the captured conventions/errors
+  artifacts. Every operation named in a skill is a real Archive GraphQL query or mutation
+  documented in the API reference. No provider-published skills or AGENTS.md were found.
+api: https://app.archive.com/api/v2
+skills:
+- file: archive-technologies-discover-creator-ugc.md
+  name: Discover a creator's UGC and engagement
+  api: https://app.archive.com/api/v2
+  operations: [creators, socialProfiles, items, engagementHistory]
+- file: archive-technologies-curate-collection.md
+  name: Curate a collection of UGC items
+  api: https://app.archive.com/api/v2
+  operations: [items, itemIdsByUrl, uploadItemFromUrl, createCollection, addItemToCollections]

@@ -1,0 +1,39 @@
+generated: '2026-07-18'
+method: derived
+source: https://api-docs.archive.com + well-known OAuth metadata
+description: >-
+  Cross-cutting standards the Archive API conforms to, derived from its documented behavior
+  and the OAuth discovery metadata. Archive is not a payments/health/identity-standard API,
+  so most vertical standards do not apply. No published compliance certifications (SOC 2 /
+  ISO 27001 / etc.) were found, so no Compliance pointer is emitted.
+standards:
+- id: graphql
+  conforms: true
+  evidence: Single POST GraphQL endpoint at /api/v2 with GraphQL error envelope and cursor connections.
+- id: oauth2
+  conforms: true
+  evidence: MCP server authorized by OAuth 2.0 authorization_code + refresh_token grants (RFC 6749).
+- id: oauth2-pkce
+  conforms: true
+  evidence: code_challenge_methods_supported includes S256 in oauth-authorization-server metadata (RFC 7636).
+- id: rfc8414-oauth-as-metadata
+  conforms: true
+  evidence: /.well-known/oauth-authorization-server serves valid RFC 8414 metadata.
+- id: rfc9728-oauth-protected-resource
+  conforms: true
+  evidence: /.well-known/oauth-protected-resource serves valid RFC 9728 metadata for the MCP resource.
+- id: rfc8615-well-known-uris
+  conforms: true
+  evidence: OAuth discovery documents served under /.well-known/.
+- id: cursor-pagination
+  conforms: true
+  evidence: first/after cursor pagination with pageInfo/endCursor/hasNextPage connection shape.
+- id: rfc9457-problem-details
+  conforms: false
+  evidence: Uses GraphQL error envelopes, not application/problem+json.
+- id: mcp
+  conforms: true
+  evidence: Hosted MCP server at app.archive.com/api/v2/mcp with OAuth protected-resource discovery.
+- id: rfc9116-security-txt
+  conforms: false
+  evidence: No /.well-known/security.txt present (404).

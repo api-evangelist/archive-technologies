@@ -1,0 +1,27 @@
+generated: '2026-07-18'
+method: searched
+source: https://api-docs.archive.com
+description: >-
+  Lifecycle posture for the Archive API. Versioning is URI-path based (current major v2 at
+  /api/v2). Archive publishes a status page (Instatus), a dated changelog (FeatureOS), and a
+  Service Level Agreement covering support hours. No formal deprecation policy or Sunset/
+  Deprecation header support is documented, and the SLA does not commit a numeric uptime
+  target.
+versioning:
+  scheme: uri-path
+  current: v2
+  docs: https://api-docs.archive.com
+status_page: https://archive.instatus.com/
+changelog: https://feedback.archive.com/changelog
+sla:
+  url: https://archive.com/legal/sla
+  uptime_target: null
+  support_hours: 9:00 AM - 5:00 PM EST, Monday-Friday (email support)
+  note: >-
+    Emails received outside support hours are logged but no action is guaranteed until the
+    next business day. No numeric uptime target or service credits are published.
+deprecation:
+  policy_url: null
+  sunset_header: false
+  note: No deprecation policy or RFC 8594 Sunset/Deprecation header support is documented.
+deprecated_operations: []

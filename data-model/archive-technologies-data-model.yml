@@ -1,0 +1,99 @@
+generated: '2026-07-18'
+method: searched
+source: https://api-docs.archive.com
+description: >-
+  Entity model of the Archive GraphQL API, derived from the documented query/mutation
+  surface and object reference (api-docs.archive.com). Archive organizes all data under a
+  Workspace; creators, social profiles, UGC items, engagement history, saved views,
+  collections, campaigns, and competitor brands hang off it. Relationships are inferred from
+  the documented queries (e.g. socialProfiles belong to creators; engagementHistory belongs
+  to items/social profiles; views group into viewGroups).
+entities:
+- name: Workspace
+  description: Top-level tenant; every token/query is scoped to a workspace via WORKSPACE-ID.
+  queries: [workspace, workspaces]
+  relationships:
+  - {type: has_many, target: Creator, via: workspace}
+  - {type: has_many, target: SocialProfile, via: workspace}
+  - {type: has_many, target: Item, via: workspace}
+  - {type: has_many, target: Collection, via: workspace}
+  - {type: has_many, target: Campaign, via: workspace}
+- name: Creator
+  description: A person/influencer tracked in the workspace; queried by name, email, or custom attributes.
+  queries: [creator, creators]
+  relationships:
+  - {type: belongs_to, target: Workspace, via: workspace}
+  - {type: has_many, target: SocialProfile, via: creator}
+- name: SocialProfile
+  description: A social account (Instagram/TikTok/YouTube) resolvable by handle, id, or URL.
+  queries: [socialProfile, socialProfiles]
+  relationships:
+  - {type: belongs_to, target: Creator, via: creator}
+  - {type: has_many, target: Item, via: socialProfile}
+  - {type: has_many, target: EngagementHistory, via: socialProfile}
+- name: Item
+  description: A piece of UGC (post, reel, story, video) with captions and engagement metrics.
+  queries: [items, itemIdsByUrl, mediaContents, transcriptions]
+  mutations: [uploadItemFromUrl, addItemToCollections, removeItemFromCollections]
+  relationships:
+  - {type: belongs_to, target: SocialProfile, via: socialProfile}
+  - {type: has_many, target: EngagementHistory, via: item}
+  - {type: has_many, target: Collection, via: collections}
+- name: EngagementHistory
+  description: Time-series engagement (likes, views, comments, shares, EMV, virality); BigInt fields as strings.
+  queries: [engagementHistory]
+  mutations: [refetchEngagementBulk]
+  relationships:
+  - {type: belongs_to, target: Item, via: item}
+- name: Collection
+  description: A curated grouping of items; managed programmatically.
+  queries: [collection, collections]
+  mutations: [createCollection, updateCollection, deleteCollection]
+  relationships:
+  - {type: belongs_to, target: Workspace, via: workspace}
+  - {type: has_many, target: Item, via: items}
+- name: ContentView
+  description: A saved view (from Social Listening / Magic Fields-filtered) over content.
+  queries: [contentView, contentViews]
+  mutations: [createContentView, updateContentView, deleteContentView, moveContentViewToGroup]
+  relationships:
+  - {type: belongs_to, target: ViewGroup, via: viewGroup}
+- name: CreatorView
+  description: A saved view over creators.
+  queries: [creatorView, creatorViews]
+  mutations: [createCreatorView, updateCreatorView, deleteCreatorView, moveCreatorViewToGroup]
+  relationships:
+  - {type: belongs_to, target: ViewGroup, via: viewGroup}
+- name: SocialProfileView
+  description: A saved view over social profiles.
+  queries: [socialProfileView, socialProfileViews]
+  mutations: [createSocialProfileView, updateSocialProfileView, deleteSocialProfileView, moveSocialProfileViewToGroup]
+  relationships:
+  - {type: belongs_to, target: ViewGroup, via: viewGroup}
+- name: ViewGroup
+  description: A grouping of views; supports reordering.
+  queries: [viewGroup, viewGroups]
+  mutations: [createViewGroup, updateViewGroup, deleteViewGroup, reorderViewsInGroup]
+  relationships:
+  - {type: has_many, target: ContentView, via: viewGroup}
+  - {type: has_many, target: CreatorView, via: viewGroup}
+  - {type: has_many, target: SocialProfileView, via: viewGroup}
+- name: Campaign
+  description: A marketing campaign tracked in the workspace.
+  queries: [campaigns]
+  relationships:
+  - {type: belongs_to, target: Workspace, via: workspace}
+- name: CompetitorBrand
+  description: A competitor brand being monitored, with its items.
+  queries: [competitorBrand, competitorBrands, competitorBrandItems]
+  relationships:
+  - {type: has_many, target: Item, via: competitorBrand}
+- name: Operation
+  description: An async operation/job record (e.g. bulk refetch) tracked for latency.
+  queries: [operation, operations]
+- name: CustomAttributeSchema
+  description: Custom-attribute definitions applied to creators and other entities.
+  queries: [customAttributeSchemas]
+- name: FilterPreset
+  description: Saved filter presets used across views.
+  queries: [filterPresets]

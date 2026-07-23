@@ -1,0 +1,33 @@
+generated: '2026-07-18'
+method: searched
+status: published
+source: https://app.archive.com/.well-known/oauth-protected-resource
+description: >-
+  Archive operates an official hosted remote MCP server at
+  https://app.archive.com/api/v2/mcp, discoverable via RFC 9728 protected-resource metadata
+  (well-known/archive-technologies-oauth-protected-resource.json) and authorized by the
+  OAuth authorization server at https://app.archive.com (RFC 8414 metadata in
+  well-known/archive-technologies-oauth-authorization-server.json). The server is
+  OAuth-protected: authorization_code + refresh_token grants, PKCE S256, dynamic client
+  registration (/oauth/register), and a single "mcp" scope. Bearer token is passed in the
+  Authorization header. The MCP surface fronts Archive's GraphQL API (creators, social
+  profiles, UGC items, engagement history, collections). Tool list is not published in the
+  static docs and introspection is disabled, so no verbatim tool inventory is asserted here.
+server:
+  name: archive
+  transport: http
+  url: https://app.archive.com/api/v2/mcp
+  auth: oauth2
+  protected_resource: well-known/archive-technologies-oauth-protected-resource.json
+  authorization_server: https://app.archive.com
+  oauth:
+    authorization_endpoint: https://app.archive.com/oauth/authorize
+    token_endpoint: https://app.archive.com/oauth/token
+    registration_endpoint: https://app.archive.com/oauth/register
+    grant_types: [authorization_code, refresh_token]
+    code_challenge_methods: [S256]
+    scopes: [mcp]
+tools: []
+tools_note: >-
+  Archive does not publish a static MCP tool manifest; the tool set is served dynamically to
+  authenticated clients. No tools are enumerated here to avoid fabrication.

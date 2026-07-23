@@ -1,23 +1,125 @@
 aid: archive-technologies
+accessModel:
+  pricing: unknown
+  onboarding: self-serve
+  trial: false
+  try_now: false
+  public: false
+  label: Self-serve signup
+  confidence: medium
+  source:
+  - authentication
+  generated: '2026-07-22'
+  method: derived
+image: https://kinlane-images.s3.amazonaws.com/shared/apis-json/icons/archive-technologies.png
 name: Archive Technologies
-description: Archive Technologies is a company surfaced as a portfolio company of battery-ventures and
-  added to the API Evangelist network as a stub for enrichment. This profile is a lead awaiting the enrichment
-  pipeline.
+description: >-
+  Archive (Archive Technologies, Inc.) is an AI-powered creator and community marketing
+  platform for e-commerce brands, founded in 2021 and headquartered in Miami, FL. Archive
+  automates social listening across TikTok, Instagram, and YouTube, creator discovery, UGC
+  rights and repurposing, campaign tracking, and reporting. Its public developer surface is
+  the Archive API — a GraphQL API at POST https://app.archive.com/api/v2 that gives teams
+  programmatic access to workspace data (creators, social profiles, UGC items, engagement
+  history, content views, collections, campaigns, and competitor brands) authenticated with
+  a workspace-scoped bearer token plus a WORKSPACE-ID header. Archive also operates an
+  OAuth-protected remote MCP server at https://app.archive.com/api/v2/mcp for AI agents.
+  Archive is backed by Battery Ventures among others.
 url: https://raw.githubusercontent.com/api-evangelist/archive-technologies/refs/heads/main/apis.yml
 x-type: company
 x-source: vc-portfolio
 x-backed-by:
 - battery-ventures
-x-tier: stub
-x-tier-reason: portfolio-lead
+x-tier: profiled
+x-tier-reason: has-public-api
 specificationVersion: '0.20'
 created: '2026-07-17'
-modified: '2026-07-17'
+modified: '2026-07-18'
 tags:
 - Company
-apis: []
+- Creator Marketing
+- Influencer Marketing
+- Social Listening
+- User Generated Content
+- E-commerce
+- GraphQL
+- MCP
 maintainers:
 - FN: Kin Lane
   email: kin@apievangelist.com
 - FN: APIs.json
   email: info@apis.io
+apis:
+- name: Archive API
+  description: >-
+    Archive's public GraphQL API for programmatic access to creator and UGC workspace data —
+    creators, social profiles, items (posts/reels/stories/videos), engagement history,
+    content views, collections, campaigns, and competitor brands. Single POST endpoint;
+    authenticated with a workspace-scoped bearer token (arch_live_...) and a WORKSPACE-ID
+    header. Cursor-paginated (first/after, nodes/pageInfo); 5 requests/second per workspace.
+  humanURL: https://api-docs.archive.com
+  baseURL: https://app.archive.com/api/v2
+  tags:
+  - GraphQL
+  - Creator Marketing
+  - UGC
+  properties:
+  - type: GraphQL
+    url: https://app.archive.com/api/v2
+  - type: Documentation
+    url: https://api-docs.archive.com
+  - type: APIReference
+    url: https://app.archive.com/api/v2/docs
+common:
+- type: DomainSecurity
+  url: security/archive-technologies-domain-security.yml
+- type: DeveloperPortal
+  url: https://api-docs.archive.com
+- type: Documentation
+  url: https://api-docs.archive.com
+- type: APIReference
+  url: https://app.archive.com/api/v2/docs
+- type: Support
+  url: https://help.archive.com/en/
+- type: Blog
+  url: https://archive.com/blog
+- type: Login
+  url: https://app.archive.com/signin
+- type: TermsOfService
+  url: https://archive.com/legal/terms
+- type: PrivacyPolicy
+  url: https://archive.com/legal/privacy
+- type: StatusPage
+  url: https://archive.instatus.com/
+- type: ChangeLog
+  url: https://feedback.archive.com/changelog
+- type: MCPServer
+  url: mcp/archive-technologies-mcp.yml
+- type: Authentication
+  url: authentication/archive-technologies-authentication.yml
+- type: OAuthScopes
+  url: scopes/archive-technologies-scopes.yml
+- type: Conventions
+  url: conventions/archive-technologies-conventions.yml
+- type: ErrorCatalog
+  url: errors/archive-technologies-problem-types.yml
+- type: RateLimits
+  url: rate-limits/archive-technologies-rate-limits.yml
+- type: Lifecycle
+  url: lifecycle/archive-technologies-lifecycle.yml
+- type: ChangeLog
+  url: changelog/archive-technologies-changelog.yml
+- type: WellKnown
+  url: well-known/archive-technologies-well-known.yml
+- type: Conformance
+  url: conformance/archive-technologies-conformance.yml
+- type: DataModel
+  url: data-model/archive-technologies-data-model.yml
+- type: LLMsTxt
+  url: llms/archive-technologies-llms.txt
+- type: AgentSkill
+  url: skills/_index.yml
+x-enrichment:
+  date: '2026-07-19'
+  status: backfilled
+  pass: local-v1
+  note: backfilled from .gitignore signal + verified work evidence

@@ -1,0 +1,23 @@
+generated: '2026-07-18'
+method: searched
+source: https://app.archive.com/.well-known/oauth-authorization-server
+docs: https://api-docs.archive.com
+description: >-
+  Archive's direct GraphQL API authenticates with a workspace-scoped bearer token, not
+  OAuth, so it exposes no scope surface. OAuth is used only by Archive's hosted MCP server,
+  whose RFC 8414 authorization-server metadata declares a single supported scope, "mcp".
+schemes:
+- name: mcpOAuth
+  type: oauth2
+  source: https://app.archive.com/.well-known/oauth-authorization-server
+  flows:
+  - flow: authorizationCode
+    authorizationUrl: https://app.archive.com/oauth/authorize
+    tokenUrl: https://app.archive.com/oauth/token
+scopes:
+- scope: mcp
+  description: >-
+    Grants an OAuth client access to the Archive MCP server (app.archive.com/api/v2/mcp),
+    which fronts the Archive GraphQL API on the authorized user's behalf.
+  flows: [authorizationCode]
+  sources: [https://app.archive.com/.well-known/oauth-authorization-server]

@@ -1,0 +1,35 @@
+specification: API Commons Rate Limits
+specificationVersion: '0.1'
+schema: https://raw.githubusercontent.com/api-evangelist/interface-research/main/schema/api-commons.yml#/$defs/RateLimits
+provider: Archive Technologies
+providerId: archive-technologies
+generated: '2026-07-18'
+method: searched
+created: '2026-07-18'
+modified: '2026-07-18'
+tags:
+- Rate Limiting
+- GraphQL
+- Creator Marketing
+description: >-
+  Archive's GraphQL API enforces a hard limit of 5 requests per second per workspace. If a
+  token accesses multiple workspaces, each workspace gets its own 5 RPS budget. Requests over
+  the limit return HTTP 429 with extensions.code RATE_LIMIT_EXCEEDED and a message including
+  the seconds to wait before retrying. Docs recommend proactive client-side traffic shaping.
+sources:
+- https://api-docs.archive.com/concepts/rate-limiting
+- https://api-docs.archive.com/reference/error-handling
+responseCodes:
+  throttled: 429
+errorCode: RATE_LIMIT_EXCEEDED
+limits:
+- name: All requests (per workspace)
+  scope: workspace
+  metric: requests_per_second
+  limit: 5
+  timeFrame: second
+constraints:
+- name: Max query depth
+  value: 10
+- name: Introspection
+  value: disabled in production

@@ -1,0 +1,50 @@
+generated: '2026-07-18'
+method: searched
+source: https://api-docs.archive.com/reference/error-handling
+format: graphql
+description: >-
+  Archive's GraphQL API error model, captured from the error-handling reference. The API
+  uses two envelope shapes: a plain string `errors` for authentication/header failures, and
+  the standard GraphQL `errors[]` array (with message, locations, extensions.code) for query
+  errors. Mutations surface business errors on a `userErrors` field inside the mutation
+  result and must be handled even when the HTTP status is 200. This is not an RFC 9457
+  application/problem+json catalog; it is the GraphQL error surface.
+envelopes:
+- kind: auth_header_error
+  shape: '{ "errors": "Missing or invalid authentication token" }'
+  http_status: 401
+- kind: graphql_query_error
+  shape: '{ "errors": [{ "message": "...", "locations": [...], "extensions": { "code": "..." } }] }'
+  http_status: 200
+- kind: mutation_user_error
+  shape: 'mutation result contains a `userErrors` field with the business error'
+  http_status: 200
+- kind: rate_limit_error
+  shape: '{ "errors": [{ "message": "Rate limit exceeded. Retry after N seconds.", "extensions": { "code": "RATE_LIMIT_EXCEEDED" } }] }'
+  http_status: 429
+problems:
+- code: undefinedField
+  location: extensions.code
+  http_status: 200
+  title: Field does not exist on the queried type
+  remediation: Correct the field name; only fields documented at api-docs.archive.com exist.
+- code: UNAUTHORIZED
+  location: errors array
+  http_status: 200
+  title: Missing or invalid authentication token / not authorized
+  remediation: Provide a valid Bearer token and matching WORKSPACE-ID header.
+- code: RATE_LIMIT_EXCEEDED
+  location: extensions.code
+  http_status: 429
+  title: Rate limit exceeded (5 RPS per workspace)
+  remediation: Wait the number of seconds indicated in the message; shape traffic to 5 RPS/workspace.
+- code: userErrors
+  location: mutation result userErrors[]
+  http_status: 200
+  title: Mutation business error (e.g. "Item not found", "Collection not found")
+  remediation: Inspect userErrors on every mutation even on HTTP 200; correct the referenced entity.
+- code: server_error
+  location: n/a
+  http_status: 5xx
+  title: Temporary server unavailability
+  remediation: Retry with backoff.

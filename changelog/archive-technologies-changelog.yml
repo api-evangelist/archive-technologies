@@ -1,0 +1,27 @@
+generated: '2026-07-18'
+method: searched
+source: https://feedback.archive.com/changelog
+docs: https://feedback.archive.com/changelog
+description: >-
+  Archive publishes a dated product changelog on a FeatureOS-hosted board at
+  feedback.archive.com/changelog, alongside a feature-request board. Entries are tagged by
+  category (Bug Fixes, New Feature, Improvements) and by product area (e.g. Reporting, Social
+  Listening) with release stages (Alpha, Generally Available). The board renders entries via
+  client-side JavaScript, so individual dated entries were not machine-extractable at capture
+  time; the live board is the source of truth. No structured recent entries are asserted here
+  to avoid fabrication.
+platform: FeatureOS
+versioning:
+  scheme: undated product changelog (categorized entries, release stages)
+  api_versioning: uri-path v2 (see lifecycle/archive-technologies-lifecycle.yml)
+categories:
+- Bug Fixes
+- New Feature
+- Improvements
+release_stages:
+- Alpha
+- Generally Available
+product_areas:
+- Reporting
+- Social Listening
+entries: []

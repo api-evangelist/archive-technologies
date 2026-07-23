@@ -1,0 +1,71 @@
+generated: '2026-07-18'
+method: searched
+source: https://api-docs.archive.com
+description: >-
+  Cross-cutting request/response conventions for the Archive GraphQL API that apply to every
+  operation: transport, authentication, workspace scoping, pagination, error envelopes, rate
+  limiting, versioning, and agent-specific handling notes. Captured from the Archive API
+  documentation (api-docs.archive.com) and the "For Coding Agents" guide.
+base_url: https://app.archive.com/api/v2
+api_style: GraphQL over HTTPS. Single POST endpoint; JSON request/response.
+authentication:
+  scheme: Bearer token (Authorization header) + WORKSPACE-ID header
+  token_prefix: arch_live_
+  detail: authentication/archive-technologies-authentication.yml
+workspace_scoping:
+  header: WORKSPACE-ID
+  value: workspace UUID
+  note: Must be sent as a header, never in the request body. Scopes the query to one workspace/agency.
+idempotency:
+  supported: false
+  note: >-
+    No idempotency-key mechanism is documented for the GraphQL API. Reads are naturally
+    idempotent; mutations are not deduplicated by a client-supplied key.
+pagination:
+  style: cursor
+  request_params:
+    first: results per page, maximum 100
+    after: cursor from the previous page's pageInfo.endCursor
+  response_fields:
+    nodes: array of results
+    totalCount: total results across all pages
+    pageInfo:
+      hasNextPage: more pages exist
+      hasPreviousPage: previous pages exist
+      endCursor: bookmark for the next request
+      startCursor: bookmark for the first item on the current page
+  paginated_queries: [items, creators, engagementHistory, workspaces, socialProfiles]
+  docs: https://api-docs.archive.com/concepts/pagination
+data_typing:
+  bigint_fields_as_strings: >-
+    BigInt engagement fields (likes, views, comments, shares, EMV) arrive as strings and
+    require explicit numeric casting client-side.
+error_envelope:
+  detail: errors/archive-technologies-problem-types.yml
+  query_errors: top-level `errors` array (HTTP 200)
+  mutation_errors: >-
+    `userErrors` field within the mutation result (HTTP 200); must be handled even on 200.
+  rate_limit_errors: HTTP 429 with extensions.code RATE_LIMIT_EXCEEDED
+rate_limiting:
+  detail: rate-limits/archive-technologies-rate-limits.yml
+  limit: 5 requests per second per workspace
+  breach_status: 429
+  breach_code: RATE_LIMIT_EXCEEDED
+  guidance: >-
+    Retry-after seconds are included in the error message. Docs recommend proactive
+    client-side traffic shaping to 5 RPS per workspace rather than reactive retries.
+versioning:
+  scheme: uri-path
+  current: v2
+  detail: lifecycle/archive-technologies-lifecycle.yml
+query_constraints:
+  max_query_depth: 10
+  introspection: disabled in production (no __schema queries)
+agent_notes:
+  source: https://api-docs.archive.com/guides/for-coding-agents
+  guidance:
+  - Do not extrapolate parameter names from other GraphQL APIs; only what api-docs.archive.com documents exists.
+  - Always pass WORKSPACE-ID as a header, not in the body.
+  - Handle userErrors on mutations even when the HTTP status is 200.
+  - Cast BigInt engagement fields (returned as strings) explicitly.
+  - Respect the hard 5 RPS per-workspace cap; treat 429 as a client throttling failure.
