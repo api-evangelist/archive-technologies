@@ -21,9 +21,13 @@ description: >-
   the Archive API — a GraphQL API at POST https://app.archive.com/api/v2 that gives teams
   programmatic access to workspace data (creators, social profiles, UGC items, engagement
   history, content views, collections, campaigns, and competitor brands) authenticated with
-  a workspace-scoped bearer token plus a WORKSPACE-ID header. Archive also operates an
-  OAuth-protected remote MCP server at https://app.archive.com/api/v2/mcp for AI agents.
-  Archive is backed by Battery Ventures among others.
+  a workspace-scoped bearer token plus a WORKSPACE-ID header. The schema is published as a
+  full reference (53 operations — 29 queries and 24 mutations — over 135 types) even though
+  runtime introspection is disabled. Archive also operates an OAuth-protected remote MCP
+  server at https://app.archive.com/api/v2/mcp whose 53 tools map 1:1 to those GraphQL
+  operations, and both surfaces draw on the same per-workspace credit budget alongside a flat
+  5 requests/second ceiling, signalled at runtime with IETF ratelimit headers. Archive is
+  backed by Battery Ventures among others.
 url: https://raw.githubusercontent.com/api-evangelist/archive-technologies/refs/heads/main/apis.yml
 x-type: company
 x-source: vc-portfolio
@@ -33,7 +37,7 @@ x-tier: profiled
 x-tier-reason: has-public-api
 specificationVersion: '0.20'
 created: '2026-07-17'
-modified: '2026-07-18'
+modified: '2026-08-13'
 tags:
 - Company
 - Creator Marketing
@@ -55,7 +59,10 @@ apis:
     creators, social profiles, items (posts/reels/stories/videos), engagement history,
     content views, collections, campaigns, and competitor brands. Single POST endpoint;
     authenticated with a workspace-scoped bearer token (arch_live_...) and a WORKSPACE-ID
-    header. Cursor-paginated (first/after, nodes/pageInfo); 5 requests/second per workspace.
+    header. Cursor-paginated (first/after, nodes/pageInfo). Two limits apply at once: a flat
+    5 requests/second per workspace and a per-plan credit budget, both reported on every
+    response via the ratelimit / ratelimit-policy headers. Introspection is disabled in
+    production; the published schema reference is the schema of record.
   humanURL: https://api-docs.archive.com
   baseURL: https://app.archive.com/api/v2
   tags:
@@ -65,10 +72,17 @@ apis:
   properties:
   - type: GraphQL
     url: https://app.archive.com/api/v2
+  - type: GraphQL
+    name: Archive API GraphQL schema (SDL)
+    url: graphql/archive-technologies.graphql
   - type: Documentation
     url: https://api-docs.archive.com
   - type: APIReference
     url: https://app.archive.com/api/v2/docs
+  - type: Examples
+    url: examples/archive-technologies-graphql-examples.yml
+  - type: ToolCrosswalk
+    url: mcp/archive-technologies-tool-crosswalk.yml
 common:
 - type: DomainSecurity
   url: security/archive-technologies-domain-security.yml
@@ -118,8 +132,23 @@ common:
   url: llms/archive-technologies-llms.txt
 - type: AgentSkill
   url: skills/_index.yml
+- type: GettingStarted
+  url: https://api-docs.archive.com/getting-started
+- type: Roadmap
+  url: https://api-docs.archive.com/roadmap
+- type: Pricing
+  url: https://archive.com/pricing
+- type: Plans
+  url: plans/archive-technologies-plans-pricing.yml
+- type: Examples
+  url: examples/archive-technologies-graphql-examples.yml
+- type: ToolCrosswalk
+  url: mcp/archive-technologies-tool-crosswalk.yml
+- type: GraphQL
+  name: Archive API GraphQL schema (SDL)
+  url: graphql/archive-technologies.graphql
 x-enrichment:
-  date: '2026-07-19'
-  status: backfilled
+  date: '2026-08-13'
+  status: enriched
+  artifacts_added: 7
   pass: local-v1
-  note: backfilled from .gitignore signal + verified work evidence
