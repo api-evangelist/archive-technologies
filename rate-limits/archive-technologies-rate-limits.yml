@@ -3,33 +3,143 @@ specificationVersion: '0.1'
 schema: https://raw.githubusercontent.com/api-evangelist/interface-research/main/schema/api-commons.yml#/$defs/RateLimits
 provider: Archive Technologies
 providerId: archive-technologies
-generated: '2026-07-18'
+generated: '2026-08-13'
 method: searched
 created: '2026-07-18'
-modified: '2026-07-18'
+modified: '2026-08-13'
 tags:
 - Rate Limiting
 - GraphQL
+- MCP
 - Creator Marketing
 description: >-
-  Archive's GraphQL API enforces a hard limit of 5 requests per second per workspace. If a
-  token accesses multiple workspaces, each workspace gets its own 5 RPS budget. Requests over
-  the limit return HTTP 429 with extensions.code RATE_LIMIT_EXCEEDED and a message including
-  the seconds to wait before retrying. Docs recommend proactive client-side traffic shaping.
+  Two limits apply to an Archive workspace at the same time, and whichever is reached first
+  binds: a per-plan CREDIT BUDGET that refills every second, and a flat ceiling of 5 requests
+  per second. Both are per workspace and never shared — one token covering several workspaces
+  gets a full budget in each, including on agency plans. One credit is one millisecond of
+  backend compute, so cost follows the work a request causes rather than the size of the
+  response. Archive's hosted MCP server draws on the same budget: a tool call maps to a query
+  and costs what that query costs. Every response carries the IETF ratelimit / ratelimit-policy
+  headers, so a client can read its plan, its burst allowance and its remaining credits off any
+  response instead of discovering the ceiling with a 429.
 sources:
 - https://api-docs.archive.com/concepts/rate-limiting
 - https://api-docs.archive.com/reference/error-handling
+- https://api-docs.archive.com/guides/best-practices
 responseCodes:
   throttled: 429
 errorCode: RATE_LIMIT_EXCEEDED
+responseHeaders:
+- name: ratelimit-policy
+  example: 'ratelimit-policy: "growth";q=15000;w=60'
+  fields:
+    quoted_name: the caller's plan
+    q: burst allowance
+    w: the window in seconds the allowance refills over (q / w gives the refill rate)
+  note: >-
+    Present on every response. This is how a client discovers its own limits on any plan,
+    including plans not in the published table.
+- name: ratelimit
+  example: 'ratelimit: "growth";r=14203;t=1785409320'
+  fields:
+    quoted_name: the caller's plan
+    r: credits remaining now
+    t: unix timestamp when the bucket is full again
+  note: Archive's documented guidance is to self-throttle against r rather than react to 429.
+- name: Retry-After
+  present_on: 429 responses
+  note: >-
+    Returned alongside the 429; the number of seconds also appears in the GraphQL error
+    message ("Rate limit exceeded. Retry after N seconds."). Honour it and a batch sync loses
+    nothing — only clients that ignore 429 fail.
 limits:
-- name: All requests (per workspace)
+- name: All requests (flat ceiling, per workspace)
   scope: workspace
   metric: requests_per_second
   limit: 5
   timeFrame: second
+  note: >-
+    Applies on every plan. For cheap requests this ceiling binds before credits do; on
+    Enterprise it binds even for expensive ones.
+- name: Credit budget (per workspace, per plan)
+  scope: workspace
+  metric: credits
+  unit: 1 credit = 1 millisecond of backend compute
+  timeFrame: second
+  detail: plans/archive-technologies-plans-pricing.yml
+  tiers:
+  - plan: Startup 2026
+    burst: 5000
+    refill_per_second: 50
+    sustained_per_day: 4300000
+  - plan: Growth 2026
+    burst: 15000
+    refill_per_second: 250
+    sustained_per_day: 21600000
+  - plan: Agency 2026
+    burst: 15000
+    refill_per_second: 250
+    sustained_per_day: 21600000
+  - plan: Enterprise 2026
+    burst: 60000
+    refill_per_second: 1000
+    sustained_per_day: 86400000
+  - plan: Base / fallback
+    burst: 5000
+    refill_per_second: 50
+    sustained_per_day: 4300000
+    note: any workspace not on a 2026 plan; appears as "base" in ratelimit-policy
+costs:
+  basis: per page of first:100 (a page costs a fixed amount for the search plus a small amount per record)
+  table:
+  - request: Cheapest request (the floor)
+    credits: 5
+  - request: engagementHistory page
+    credits: 6
+  - request: socialProfiles page
+    credits: 45
+  - request: Any write / mutation
+    credits: 55
+    approximate: true
+    note: A write is a single operation, so page size does not apply.
+  - request: items page
+    credits: 60
+  - request: creators search
+    credits: 90
+  - request: Full items page with every relation
+    credits: 183
+    approximate: true
+    note: Varies with the relations selected; ~183 is a measured example.
+  - request: creators search with custom-attribute conditions
+    credits: 340
+    note: >-
+      The attribute-filter surcharge applies per page, and passing a presetId incurs it too,
+      so a saved view does not avoid it.
 constraints:
 - name: Max query depth
   value: 10
+  error: 'Query has depth of 11, which exceeds max depth of 10'
+- name: Max page size
+  value: 100
+  error: first must be less than or equal to 100
 - name: Introspection
   value: disabled in production
+guidance:
+- >-
+  Ask for more per request. Every request costs at least 5 credits however little it returns:
+  one items page of 100 posts costs 60 credits, while the same 100 posts fetched one at a time
+  cost 500 — eight times the cost for the same data.
+- >-
+  Keep custom-attribute filters server-side only when they return a small share of your
+  creators. The documented crossover is the cost ratio 90 / 340, about one in four.
+- >-
+  Shape traffic before it leaves your service with a token-bucket limiter set to your plan's
+  refill rate, shared across processes hitting the same workspace. Retries with backoff add
+  latency without raising your rate.
+- >-
+  engagementHistory takes a single itemId, not a batch, so it fans out into many requests. At
+  6 credits/page it is the cheapest call available — here the 5-requests-per-second ceiling
+  bites first, not credits.
+- >-
+  Pace writes by credits: a mutation costs ~55, so Startup sustains about one write per second
+  and Growth about four.

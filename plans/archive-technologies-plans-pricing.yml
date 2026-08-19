@@ -1,0 +1,117 @@
+generated: '2026-08-13'
+method: searched
+source: https://api-docs.archive.com/concepts/rate-limiting
+sources:
+- https://api-docs.archive.com/concepts/rate-limiting
+- https://archive.com/pricing
+description: >-
+  Archive publishes NO prices. https://archive.com/pricing (HTTP 200) is the "Book a demo"
+  form — the nav item labelled Pricing resolves to a page titled "Demo" that collects
+  company size, revenue and agency affiliation before a conversation; there is no self-serve
+  signup anywhere on archive.com and no published tier price, currency or billing period.
+  What Archive DOES publish, in its API rate-limiting reference, is the named plan set and
+  the API quota attached to each plan — a credit budget (burst + per-second refill) that is
+  the hard, machine-visible quota an integrator is buying. Those tiers are recorded below.
+  Prices are null because Archive does not publish them, not because they were not looked for.
+plan_count: 5
+pricing_published: false
+pricing_model: sales-gated (book-a-demo); API usage metered in credits against a per-plan budget
+currency: null
+billing_period: null
+quota_unit: credit
+quota_definition: >-
+  One credit is one millisecond of backend compute. Cost follows the work a request causes,
+  not the size of the response. The MCP server draws on the same budget — a tool call maps to
+  a query and costs what that query costs.
+quota_scope: per workspace (a token reaching several workspaces gets a full budget in each)
+plans:
+- name: Startup 2026
+  price: null
+  currency: null
+  billing_period: null
+  quota:
+    burst_credits: 5000
+    refill_credits_per_second: 50
+    sustained_credits_per_day: 4300000
+  limits:
+    requests_per_second: 5
+  note: >-
+    Refills 50 credits/second, so it sustains just under one full items page (60 credits) per
+    second and about one write (~55 credits) per second.
+  source: https://api-docs.archive.com/concepts/rate-limiting
+- name: Growth 2026
+  price: null
+  currency: null
+  billing_period: null
+  quota:
+    burst_credits: 15000
+    refill_credits_per_second: 250
+    sustained_credits_per_day: 21600000
+  limits:
+    requests_per_second: 5
+  note: Sustains about four full items pages, or four writes, per second.
+  source: https://api-docs.archive.com/concepts/rate-limiting
+- name: Agency 2026
+  price: null
+  currency: null
+  billing_period: null
+  quota:
+    burst_credits: 15000
+    refill_credits_per_second: 250
+    sustained_credits_per_day: 21600000
+  limits:
+    requests_per_second: 5
+  note: >-
+    Same allowance as Growth 2026, but every workspace in the agency org carries a full
+    allowance of its own, so one brand's sync never slows another. Agency plans get one API
+    token covering every workspace in the org.
+  source: https://api-docs.archive.com/concepts/rate-limiting
+- name: Enterprise 2026
+  price: null
+  currency: null
+  billing_period: null
+  quota:
+    burst_credits: 60000
+    refill_credits_per_second: 1000
+    sustained_credits_per_day: 86400000
+  limits:
+    requests_per_second: 5
+  note: >-
+    Has credits for sixteen items pages per second, but the flat 5 requests/second ceiling
+    holds it to five — on this tier the request ceiling binds before credits do.
+  source: https://api-docs.archive.com/concepts/rate-limiting
+- name: Base / fallback
+  price: null
+  currency: null
+  billing_period: null
+  quota:
+    burst_credits: 5000
+    refill_credits_per_second: 50
+    sustained_credits_per_day: 4300000
+  limits:
+    requests_per_second: 5
+  note: >-
+    Applies to any workspace not on a 2026 plan, most often a legacy plan. Same allowance as
+    Startup 2026. Appears as "base" in the ratelimit-policy response header.
+  source: https://api-docs.archive.com/concepts/rate-limiting
+feature_gating:
+  api_access: >-
+    API token generation is self-service under Settings -> API, but only on compatible plans.
+  mcp_server: >-
+    Included on some plans only; the help-center article "Using the Archive MCP Server"
+    documents which plans include it.
+  competitor_insights: available on plans that include Competitor Insights
+  refetch_engagement_bulk: requires a feature flag (arranged with a CSM)
+overage: >-
+  Not published as a monetary overage. Exceeding the budget throttles rather than bills: the
+  request returns HTTP 429 with Retry-After and extensions.code RATE_LIMIT_EXCEEDED. Archive
+  states going over the limit "costs you time, not data".
+notes:
+- >-
+  The plan name is discoverable at runtime without asking sales: the ratelimit-policy response
+  header names the caller's plan and gives its burst allowance
+  (e.g. ratelimit-policy: "growth";q=15000;w=60).
+- >-
+  A request costs a fixed amount for the search plus a small amount per record, so the
+  published cost table is expressed per page of 100. See
+  rate-limits/archive-technologies-rate-limits.yml for the per-request costs.

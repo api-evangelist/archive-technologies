@@ -1,18 +1,29 @@
-generated: '2026-07-18'
+generated: '2026-08-13'
 method: searched
 status: published
-source: https://app.archive.com/.well-known/oauth-protected-resource
+source: https://api-docs.archive.com/mcp
+sources:
+- https://api-docs.archive.com/mcp
+- https://api-docs.archive.com/mcp/connecting
+- https://api-docs.archive.com/mcp/custom-connector
+- https://app.archive.com/.well-known/oauth-protected-resource
 description: >-
-  Archive operates an official hosted remote MCP server at
-  https://app.archive.com/api/v2/mcp, discoverable via RFC 9728 protected-resource metadata
-  (well-known/archive-technologies-oauth-protected-resource.json) and authorized by the
-  OAuth authorization server at https://app.archive.com (RFC 8414 metadata in
+  Archive operates an official hosted remote MCP server at https://app.archive.com/api/v2/mcp,
+  discoverable via RFC 9728 protected-resource metadata
+  (well-known/archive-technologies-oauth-protected-resource.json) and authorized by the OAuth
+  authorization server at https://app.archive.com (RFC 8414 metadata in
   well-known/archive-technologies-oauth-authorization-server.json). The server is
   OAuth-protected: authorization_code + refresh_token grants, PKCE S256, dynamic client
-  registration (/oauth/register), and a single "mcp" scope. Bearer token is passed in the
-  Authorization header. The MCP surface fronts Archive's GraphQL API (creators, social
-  profiles, UGC items, engagement history, collections). Tool list is not published in the
-  static docs and introspection is disabled, so no verbatim tool inventory is asserted here.
+  registration (/oauth/register) and a single "mcp" scope; no client id/secret is issued to
+  connector authors. Archive publishes the complete tool catalog at
+  https://api-docs.archive.com/mcp — 53 tools, 29 read and 24 write — and states the page is
+  kept in sync with the live server. The tool list below is transcribed verbatim from that
+  page. A live tools/list call is NOT anonymous: it returns HTTP 401 with a
+  WWW-Authenticate Bearer challenge pointing at the protected-resource metadata, so per-tool
+  inputSchema requires an authenticated introspection and is not asserted here. Each tool
+  maps to a GraphQL query or mutation on the same API and spends the same per-workspace
+  credit budget (see mcp/archive-technologies-tool-crosswalk.yml and
+  rate-limits/archive-technologies-rate-limits.yml).
 server:
   name: archive
   transport: http
@@ -24,10 +35,293 @@ server:
     authorization_endpoint: https://app.archive.com/oauth/authorize
     token_endpoint: https://app.archive.com/oauth/token
     registration_endpoint: https://app.archive.com/oauth/register
-    grant_types: [authorization_code, refresh_token]
-    code_challenge_methods: [S256]
-    scopes: [mcp]
-tools: []
+    grant_types:
+    - authorization_code
+    - refresh_token
+    code_challenge_methods:
+    - S256
+    scopes:
+    - mcp
+    dynamic_client_registration: true
+    note: >-
+      Connector authors never supply an OAuth client id or secret — Archive publishes its
+      OAuth metadata and supports dynamic client registration, so the client registers itself.
+deployment:
+  mode: remote
+  endpoint: https://app.archive.com/api/v2/mcp
+  auth: oauth
+  verified: probed
+  probe: gated
+  probe_detail: >-
+    POST tools/list (2026-08-13) returned HTTP 401
+    {"jsonrpc":"2.0","id":1,"error":{"code":-32001,"message":"Authentication required"}}
+    with www-authenticate: Bearer resource_metadata="https://app.archive.com/.well-known/oauth-protected-resource".
+  checked: '2026-08-13'
+access:
+  scoping: >-
+    Every tool is workspace-scoped — it acts on the workspace the client is connected to, or
+    the one the user names.
+  consent: >-
+    Browser sign-in ends on Archive's consent screen, where the user chooses read-only vs.
+    full access and which workspaces to grant. Both default to the permissive option.
+  approval: >-
+    Every write tool runs behind a per-call approval in the AI client (Always allow / Ask /
+    Never). Deletes only remove the saved view, collection or group — never the underlying
+    content, creators or media.
+  identity_modes:
+  - mode: browser-sign-in
+    acts_as: the individual user; each person authorizes their own connection
+    token: none
+    clients: [Claude, Claude Code, ChatGPT]
+  - mode: config-file + API token
+    acts_as: the whole workspace, not a person
+    token: workspace API token stored in an MCP config file
+    clients: any client that reads an MCP config file (including Claude Desktop, Claude Code)
+  directory_listing: >-
+    Archive is not yet listed in the Claude or ChatGPT connector directories; both require a
+    custom connector created once per workspace (name + server URL only).
+  errors: >-
+    Errors are returned as text, not exceptions — a rate-limited call comes back as
+    "Rate limit exceeded. Retry after N seconds." and a domain rejection on a write comes
+    back in userErrors (the write did not happen).
+  cost: >-
+    MCP calls spend the same per-workspace credit budget as the GraphQL API. There is no
+    separate MCP allowance.
+tool_counts:
+  total: 53
+  read: 29
+  write: 24
+tools_source: https://api-docs.archive.com/mcp
 tools_note: >-
-  Archive does not publish a static MCP tool manifest; the tool set is served dynamically to
-  authenticated clients. No tools are enumerated here to avoid fabrication.
+  Names and descriptions are verbatim from Archive's published tool catalog. inputSchema is
+  not enumerated — the live tools/list requires OAuth. Backing GraphQL operations are bound
+  in mcp/archive-technologies-tool-crosswalk.yml.
+tools:
+- name: getWorkspaces
+  category: Workspace & schema
+  access: read
+  description: List the workspaces you can access.
+- name: getWorkspace
+  category: Workspace & schema
+  access: read
+  description: One workspace's tracked hashtags, mentions, keywords, and connected integrations.
+- name: getCustomAttributeSchemas
+  category: Workspace & schema
+  access: read
+  description: >-
+    Custom-attribute definitions for ITEM or CREATOR — used to interpret customAttributes and
+    to build attribute filters.
+- name: getFilterPresets
+  category: Workspace & schema
+  access: read
+  description: Saved filter presets (Content Views + Collections) with their ids.
+- name: searchItems
+  category: Content & media
+  access: read
+  description: >-
+    Search archived content (Instagram, TikTok, YouTube) with the full filter set, sorting,
+    and presetId.
+- name: getMediaContents
+  category: Content & media
+  access: read
+  description: Media files (images/videos) for items — or for tracked Competitor Insights items.
+- name: getTranscriptions
+  category: Content & media
+  access: read
+  description: Transcripts for the media attached to items.
+- name: getItemIdsByUrl
+  category: Content & media
+  access: read
+  description: Resolve post URLs to Archive item ids.
+- name: getEngagementHistory
+  category: Content & media
+  access: read
+  description: >-
+    The engagement-snapshot timeline (likes, comments, views, EMV, ...) for a single item.
+- name: searchCreators
+  category: Creators & social profiles
+  access: read
+  description: Search creators tracked in the workspace, with custom-attribute and location filters.
+- name: getCreator
+  category: Creators & social profiles
+  access: read
+  description: One creator by id, with custom attributes.
+- name: getSocialProfile
+  category: Creators & social profiles
+  access: read
+  description: >-
+    One social profile by id, or by handle + provider. With fallback: true it fetches live
+    from the platform even if the profile isn't archived yet.
+- name: getSocialProfiles
+  category: Creators & social profiles
+  access: read
+  description: >-
+    Page through every social profile in the workspace, with totalCount and cursor
+    pagination. Narrow by a saved view with preset_id.
+- name: getContentViews
+  category: Views & collections
+  access: read
+  description: Saved media-deck views (list). Pair with searchItems(preset_id:).
+- name: getContentView
+  category: Views & collections
+  access: read
+  description: Saved media-deck view (single). Pair with searchItems(preset_id:).
+- name: getSocialProfileViews
+  category: Views & collections
+  access: read
+  description: Saved Social Profile views (list).
+- name: getSocialProfileView
+  category: Views & collections
+  access: read
+  description: Saved Social Profile view (single).
+- name: getCreatorViews
+  category: Views & collections
+  access: read
+  description: Saved Creator views (list).
+- name: getCreatorView
+  category: Views & collections
+  access: read
+  description: Saved Creator view (single).
+- name: getViewGroups
+  category: Views & collections
+  access: read
+  description: Sidebar view groups and their member views (list).
+- name: getViewGroup
+  category: Views & collections
+  access: read
+  description: Sidebar view group and its member views (single).
+- name: getCollections
+  category: Views & collections
+  access: read
+  description: Collections (saved tag sets) and their item counts (list).
+- name: getCollection
+  category: Views & collections
+  access: read
+  description: Collection (saved tag set) and its item count (single).
+- name: getCampaigns
+  category: Campaigns, competitors & operations
+  access: read
+  description: List campaigns in the workspace.
+- name: getCompetitorBrands
+  category: Campaigns, competitors & operations
+  access: read
+  description: Competitor Insights brands tracked on the workspace (list).
+- name: getCompetitorBrand
+  category: Campaigns, competitors & operations
+  access: read
+  description: Competitor Insights brand tracked on the workspace (single).
+- name: getCompetitorBrandItems
+  category: Campaigns, competitors & operations
+  access: read
+  description: Content captured for a competitor brand, within a date window.
+- name: getOperations
+  category: Campaigns, competitors & operations
+  access: read
+  description: Track async operations (e.g. a bulk engagement refresh) and their status (list).
+- name: getOperation
+  category: Campaigns, competitors & operations
+  access: read
+  description: Track an async operation (e.g. a bulk engagement refresh) and its status (single).
+- name: createCollection
+  category: Collections
+  access: write
+  description: Create a Collection (saved tag set).
+- name: updateCollection
+  category: Collections
+  access: write
+  description: Rename a Collection (saved tag set).
+- name: deleteCollection
+  category: Collections
+  access: write
+  description: Delete a Collection (saved tag set).
+- name: addItemToCollections
+  category: Collections
+  access: write
+  description: Tag an item into one or more Collections.
+- name: removeItemFromCollections
+  category: Collections
+  access: write
+  description: Untag an item from one or more Collections.
+- name: createContentView
+  category: Views
+  access: write
+  description: Create a Content View.
+- name: updateContentView
+  category: Views
+  access: write
+  description: Update a Content View (updates are partial).
+- name: deleteContentView
+  category: Views
+  access: write
+  description: Delete a Content View.
+- name: createSocialProfileView
+  category: Views
+  access: write
+  description: Create a Social Profile View.
+- name: updateSocialProfileView
+  category: Views
+  access: write
+  description: Update a Social Profile View (updates are partial).
+- name: deleteSocialProfileView
+  category: Views
+  access: write
+  description: Delete a Social Profile View.
+- name: createCreatorView
+  category: Views
+  access: write
+  description: >-
+    Create a Creator View. Creator Views narrow by customAttributeConditions, not by the
+    filters blob.
+- name: updateCreatorView
+  category: Views
+  access: write
+  description: Update a Creator View (updates are partial).
+- name: deleteCreatorView
+  category: Views
+  access: write
+  description: Delete a Creator View.
+- name: createViewGroup
+  category: View groups
+  access: write
+  description: Create a sidebar view group.
+- name: updateViewGroup
+  category: View groups
+  access: write
+  description: Rename a sidebar view group.
+- name: deleteViewGroup
+  category: View groups
+  access: write
+  description: Delete a sidebar view group.
+- name: moveContentViewToGroup
+  category: View groups
+  access: write
+  description: Move a Content View into or out of a group.
+- name: moveSocialProfileViewToGroup
+  category: View groups
+  access: write
+  description: Move a Social Profile View into or out of a group.
+- name: moveCreatorViewToGroup
+  category: View groups
+  access: write
+  description: Move a Creator View into or out of a group.
+- name: moveCollectionToGroup
+  category: View groups
+  access: write
+  description: >-
+    Move a Collection into or out of a group — the API equivalent of the UI's right-click
+    "Add Collection to Group". Takes a collection_id, not a view_id.
+- name: reorderViewsInGroup
+  category: View groups
+  access: write
+  description: Reorder the views inside a group.
+- name: uploadItemFromUrl
+  category: Items
+  access: write
+  description: Import a public post by URL (async — the item appears a few minutes later).
+- name: refetchEngagementBulk
+  category: Items
+  access: write
+  description: >-
+    Queue a bulk engagement-metrics refresh for a set of items; track it with getOperation.
+    Spends credits and requires a feature flag.
+help_center: https://help.archive.com/en/

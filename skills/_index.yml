@@ -1,11 +1,17 @@
-generated: '2026-07-18'
+generated: '2026-08-13'
 method: generated
 description: >-
-  Packaged Agent Skills for the Archive GraphQL API, generated from Archive's documented
-  query/mutation surface (api-docs.archive.com) and the captured conventions/errors
-  artifacts. Every operation named in a skill is a real Archive GraphQL query or mutation
-  documented in the API reference. No provider-published skills or AGENTS.md were found.
+  Packaged Agent Skills for the Archive GraphQL API. Every operation named in a skill is a real
+  Archive GraphQL query or mutation, verified against the published schema
+  (graphql/archive-technologies.graphql, transcribed from Archive's own SpectaQL reference at
+  https://app.archive.com/api/v2/docs) — none is invented. The runtime rules in each skill
+  (credit costs, rate-limit headers, error envelopes, the two documented filter traps) come
+  from Archive's published docs and the captured conventions / rate-limits / errors artifacts.
+  No provider-published skills or AGENTS.md were found; Archive's "For Coding Agents" guide
+  (https://api-docs.archive.com/guides/for-coding-agents) is the nearest equivalent and is
+  reflected in these.
 api: https://app.archive.com/api/v2
+schema: graphql/archive-technologies.graphql
 skills:
 - file: archive-technologies-discover-creator-ugc.md
   name: Discover a creator's UGC and engagement
@@ -15,3 +21,13 @@ skills:
   name: Curate a collection of UGC items
   api: https://app.archive.com/api/v2
   operations: [items, itemIdsByUrl, uploadItemFromUrl, createCollection, addItemToCollections]
+- file: archive-technologies-budget-aware-export.md
+  name: Export a workspace's content or creators without burning the credit budget
+  api: https://app.archive.com/api/v2
+  operations: [filterPresets, contentViews, collections, items, creators, socialProfiles, engagementHistory]
+- file: archive-technologies-manage-saved-views.md
+  name: Save a search as a view and organise the workspace sidebar
+  api: https://app.archive.com/api/v2
+  operations: [contentViews, creatorViews, socialProfileViews, viewGroups, collections, createContentView,
+    updateContentView, deleteContentView, createCreatorView, createSocialProfileView, createViewGroup,
+    moveContentViewToGroup, moveCollectionToGroup, reorderViewsInGroup]

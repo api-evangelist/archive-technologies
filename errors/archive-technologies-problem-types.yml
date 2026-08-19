@@ -1,23 +1,46 @@
-generated: '2026-07-18'
+generated: '2026-08-13'
 method: searched
 source: https://api-docs.archive.com/reference/error-handling
 format: graphql
 description: >-
-  Archive's GraphQL API error model, captured from the error-handling reference. The API
-  uses two envelope shapes: a plain string `errors` for authentication/header failures, and
-  the standard GraphQL `errors[]` array (with message, locations, extensions.code) for query
-  errors. Mutations surface business errors on a `userErrors` field inside the mutation
-  result and must be handled even when the HTTP status is 200. This is not an RFC 9457
-  application/problem+json catalog; it is the GraphQL error surface.
+  Archive's GraphQL API error model, captured from the published error reference. Two envelope
+  shapes coexist and both must be handled: authentication and header failures return `errors`
+  as a plain STRING, while GraphQL errors return the standard `errors` ARRAY with message,
+  locations and extensions.code. Mutations surface business errors on a `userErrors` field
+  inside the mutation result and must be handled even when the HTTP status is 200 — an empty
+  userErrors array is the success signal. Most failures return HTTP 200; only four cases move
+  the status code (401 bad/missing token, 404 bad/missing WORKSPACE-ID, 429 rate limit, 5xx
+  server error). This is not an RFC 9457 application/problem+json catalog; it is the GraphQL
+  error surface. On the MCP server the same errors are returned as TEXT rather than
+  exceptions.
+status_code_map:
+- failure: Bad or missing token
+  http: 401
+  errors_shape: string
+- failure: Bad or missing WORKSPACE-ID
+  http: 404
+  errors_shape: string
+- failure: Over the rate limit
+  http: 429
+  errors_shape: array
+- failure: Server error
+  http: 5xx
+  errors_shape: array
+- failure: Everything else (bad field, bad enum, bad date)
+  http: 200
+  errors_shape: array
 envelopes:
 - kind: auth_header_error
   shape: '{ "errors": "Missing or invalid authentication token" }'
   http_status: 401
+- kind: workspace_header_error
+  shape: '{ "errors": "Shop not found" }'
+  http_status: 404
 - kind: graphql_query_error
   shape: '{ "errors": [{ "message": "...", "locations": [...], "extensions": { "code": "..." } }] }'
   http_status: 200
 - kind: mutation_user_error
-  shape: 'mutation result contains a `userErrors` field with the business error'
+  shape: '{ "data": { "<mutation>": { "<entity>": null, "userErrors": [{ "field": "...", "message": "..." }] } } }'
   http_status: 200
 - kind: rate_limit_error
   shape: '{ "errors": [{ "message": "Rate limit exceeded. Retry after N seconds.", "extensions": { "code": "RATE_LIMIT_EXCEEDED" } }] }'
@@ -27,24 +50,114 @@ problems:
   location: extensions.code
   http_status: 200
   title: Field does not exist on the queried type
-  remediation: Correct the field name; only fields documented at api-docs.archive.com exist.
+  message: "Field 'x' doesn't exist on type 'Query'"
+  cause: The field name is not in the schema.
+  remediation: >-
+    Check for typos, then check the reference. Introspection is disabled, so a client cannot
+    discover field names at runtime — use graphql/archive-technologies.graphql or
+    api-docs.archive.com.
+- code: argumentLiteralsIncompatible
+  location: extensions.code
+  http_status: 200
+  title: Enum value is not valid for that argument
+  cause: An enum literal outside the documented value set was passed.
+  remediation: >-
+    Check the documented enum values. viralityScore is the common case — it accepts HIGH,
+    MEDIUM and LOW, but not NOT_VIRAL.
+- code: missingRequiredArguments
+  location: extensions.code
+  http_status: 200
+  title: A required argument is absent
+  cause: The named argument was not supplied.
+  remediation: >-
+    The message names the argument. This code also confirms the field exists — useful when
+    checking whether a surface is available at all.
 - code: UNAUTHORIZED
+  location: extensions.code / errors array
+  http_status: 200
+  title: Token is valid but lacks permission for this operation
+  cause: The token does not have access to the workspace being queried.
+  remediation: >-
+    Confirm the token has access to that workspace; contact support@archive.com for
+    permission changes.
+- code: authentication_error
+  location: errors (string)
+  http_status: 401
+  title: Missing or invalid authentication token
+  cause: Token missing, expired, or incorrectly formatted.
+  remediation: >-
+    Check the Authorization header is `Bearer <token>` with no extra spaces or quotes.
+- code: workspace_not_found
+  location: errors (string)
+  http_status: 404
+  title: Shop not found
+  cause: The WORKSPACE-ID header carries an invalid UUID.
+  remediation: >-
+    Double-check the workspace UUID. Run the workspaces query (which needs no WORKSPACE-ID)
+    to list valid ids.
+- code: page_size_exceeded
   location: errors array
   http_status: 200
-  title: Missing or invalid authentication token / not authorized
-  remediation: Provide a valid Bearer token and matching WORKSPACE-ID header.
+  title: first must be less than or equal to 100
+  cause: More than 100 results per page requested.
+  remediation: Set first to 100 or less and page with the after cursor.
+- code: INTERNAL_SERVER_ERROR
+  location: extensions.code
+  http_status: 200
+  title: 'Cannot coerce "..." to DateTime: must be in UTC (ending with Z, +00:00, or -00:00)'
+  cause: The date carries no UTC marker, or carries a non-zero offset.
+  remediation: >-
+    Add Z, as in 2026-03-01T00:00:00Z (+00:00 and -00:00 also work). A real offset such as
+    -03:00 is rejected — convert to UTC first. Note this input error arrives under
+    code INTERNAL_SERVER_ERROR even though the input is at fault.
+- code: max_depth_exceeded
+  location: errors array
+  http_status: 200
+  title: 'Query has depth of 11, which exceeds max depth of 10'
+  cause: The query nests more than 10 levels.
+  remediation: Split it into two queries, or drop a relation.
+- code: WRONG_VIEW_TYPE_FOR_ITEMS
+  location: extensions.code
+  http_status: 200
+  title: presetId is unknown, cross-workspace, or has the wrong accessor
+  cause: >-
+    items(presetId:) must reference a preset with accessor media_deck or collections — pass
+    ids returned by the contentViews / collections queries.
+  remediation: Use an id from contentViews or collections for the same workspace.
 - code: RATE_LIMIT_EXCEEDED
   location: extensions.code
   http_status: 429
-  title: Rate limit exceeded (5 RPS per workspace)
-  remediation: Wait the number of seconds indicated in the message; shape traffic to 5 RPS/workspace.
-- code: userErrors
+  title: Rate limit exceeded (5 RPS per workspace and/or the per-plan credit budget)
+  remediation: >-
+    Honour the Retry-After header (or the seconds in the message). Better, self-throttle
+    against the `r` field of the `ratelimit` response header. See
+    rate-limits/archive-technologies-rate-limits.yml.
+- code: userErrors.itemId
   location: mutation result userErrors[]
   http_status: 200
-  title: Mutation business error (e.g. "Item not found", "Collection not found")
-  remediation: Inspect userErrors on every mutation even on HTTP 200; correct the referenced entity.
+  title: Item not found
+  cause: The item id does not exist in this workspace.
+  remediation: Verify the id with an items query and confirm the WORKSPACE-ID header.
+- code: userErrors.collection
+  location: mutation result userErrors[]
+  http_status: 200
+  title: Collection not found
+  cause: The collection name does not exist and autoCreate is false.
+  remediation: >-
+    Set autoCreate: true to create it, or check the name with a filterPresets / collections
+    query.
 - code: server_error
   location: n/a
   http_status: 5xx
   title: Temporary server unavailability
-  remediation: Retry with backoff.
+  remediation: Wait and retry with backoff; contact support@archive.com if it persists.
+constraints:
+- name: Introspection
+  detail: >-
+    Disabled in production — __schema and __type cannot be queried at runtime. The published
+    reference (and graphql/archive-technologies.graphql) is the schema of record.
+- name: Max query depth
+  detail: 10
+- name: Max page size
+  detail: 100
+support: support@archive.com

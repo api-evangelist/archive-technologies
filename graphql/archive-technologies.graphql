@@ -1,0 +1,2440 @@
+# Archive API — GraphQL schema (SDL)
+#
+# Provider:   Archive Technologies, Inc. (archive.com)
+# Endpoint:   https://app.archive.com/api/v2  (single POST endpoint)
+# Source:     https://app.archive.com/api/v2/docs — the provider's own published
+#             SpectaQL schema reference, rendered from the live schema.
+# Method:     derived. Introspection is DISABLED in production (a __schema query
+#             returns 401 / "Missing or invalid authentication token"), so this SDL was
+#             reconstructed field-by-field from the provider's published reference rather
+#             than from an introspection response. Every type, field, argument, enum value
+#             and description below is transcribed verbatim from that page; nothing is
+#             inferred or invented. Argument default values are preserved inside the
+#             argument descriptions ("Default = ...") exactly as the reference states them,
+#             rather than re-encoded as SDL defaults.
+# Captured:   2026-08-13
+#
+# Auth:       Authorization: Bearer arch_live_...  +  WORKSPACE-ID: <workspace uuid>
+# Limits:     5 requests/second per workspace AND a per-plan credit budget (see
+#             rate-limits/archive-technologies-rate-limits.yml)
+# Depth:      max query depth 10
+
+schema {
+  query: Query
+  mutation: Mutation
+}
+
+type Query {
+  """
+  List and paginate campaigns for the current workspace, ordered newest first. Workflow-type rows
+  are excluded to match the in-app CRM listing.
+  """
+  campaigns(
+    """Cursor for fetching the next page of results. Default = null"""
+    after: String
+    """Number of campaigns to return (page size). Default = 20"""
+    first: Int
+  ): CampaignConnection!
+  """
+  Return a single Collection by ID for the current workspace, or null if no such Collection exists
+  here.
+  """
+  collection(
+    """ID of the Collection to fetch, as returned by the collections query for this workspace."""
+    id: ID!
+  ): Collection
+  """
+  List Collections (saved tag sets) for the current workspace, in the workspace's saved order.
+  Returns at most 1000 rows; this field is not paginated.
+  """
+  collections: [Collection!]!
+  """
+  Return a single Competitor Insights brand by ID for the current workspace, or null if no brand
+  with that ID is tracked here. Also resolves the workspace's own-brand entry by its stable id. Pair
+  with competitorBrandItems(brandId:, filter:, …) to paginate the brand's media items. If aggregate
+  metrics are unavailable, roster data remains and the response includes a SERVICE_UNAVAILABLE
+  error; match on extensions.code and retry later.
+  """
+  competitorBrand(
+    """Anchor date (e.g. 2025-06-01) for the aggregation window. Defaults to today. Default = null"""
+    date: DateWithZone
+    """Competitor Insights brand ID. Also resolves the workspace's own-brand entry by its stable id."""
+    id: ID!
+    """Aggregation window for the metric fields (WEEK or MONTH). Defaults to MONTH. Default = MONTH"""
+    period: CompetitorBrandStatsPeriod
+  ): CompetitorBrand
+  """
+  Paginate frozen historical Competitor Insights posts for a brand within a required filter.takenAt
+  window. Existing rows remain queryable, but no new posts are added.
+  """
+  competitorBrandItems(
+    """
+    Opaque cursor for fetching the next page of results. Cursors remain valid if sorting changes
+    between pages. A malformed cursor is rejected with an Invalid cursor error; a stale cursor that
+    carries no position for the requested sort returns an empty page. Default = null
+    """
+    after: String
+    """
+    Competitor Insights brand UUID. If the brand is not tracked by the current workspace, the query
+    returns an empty connection.
+    """
+    brandId: ID!
+    """Filter criteria. A takenAt time window is required; unbounded queries are not supported."""
+    filter: CompetitorBrandItemFilterInput!
+    """Number of posts to return (page size). Default = 20"""
+    first: Int
+    """
+    Sort configuration. Currently accepts a list of at most one entry; multiple entries are
+    rejected. The list shape exists for forward compatibility — a future release may honor compound
+    sort additively without a breaking schema change. Defaults to [{ sortKey: TAKEN_AT, sortOrder:
+    DESC }] when omitted. NOTE: EARNED_MEDIA_VALUE rankings are computed per calendar month. For a
+    takenAt window spanning multiple months, results are ordered within each month rather than as a
+    single cross-month ranking. Tie-breaker is the post identifier in the same direction as the
+    primary sort. Default = [{sortKey: TAKEN_AT, sortOrder: DESC}]
+    """
+    sorting: [CompetitorBrandItemSortingInput!]
+  ): CompetitorBrandItemConnection!
+  """
+  List Competitor Insights brands tracked by the current workspace, ordered newest first, with
+  aggregate metrics over a period/date window (default month). The workspace's own-brand entry is
+  returned as one additional pinned node on the first page (flagged isOwnBrand), in addition to up
+  to first competitor brands, so self-vs-competitor Share of Voice is computable in-query;
+  totalCount counts tracked competitor brands only. Pair with competitorBrandItems(brandId:,
+  filter:, …) to paginate a brand's media items. If aggregate metrics are unavailable, roster data
+  remains and the response includes a SERVICE_UNAVAILABLE error; match on extensions.code and retry
+  later.
+  """
+  competitorBrands(
+    """Cursor for fetching the next page of results. Default = null"""
+    after: String
+    """Anchor date (e.g. 2025-06-01) for the aggregation window. Defaults to today. Default = null"""
+    date: DateWithZone
+    """
+    Number of competitor brands to return (page size). The own-brand entry is additional. Default =
+    20
+    """
+    first: Int
+    """Aggregation window for the metric fields (WEEK or MONTH). Defaults to MONTH. Default = MONTH"""
+    period: CompetitorBrandStatsPeriod
+  ): CompetitorBrandConnection!
+  """
+  Return a single saved content (media deck) view by ID for the current workspace, or null if no
+  such view exists here. Pair with items(presetId:) to fetch the items belonging to a view.
+  """
+  contentView(
+    """FilterPreset UUID of the content view to fetch."""
+    id: ID!
+  ): ContentView
+  """
+  List saved content (media deck) views for the current workspace, ordered by most-recently-updated
+  first. Pair with items(presetId:) to fetch the items belonging to a view. Returns at most 1000
+  rows; this field is not paginated.
+  """
+  contentViews(
+    """
+    Optional filter criteria. When omitted or empty, returns the current workspace's media_deck
+    views. Default = {}
+    """
+    filter: ContentViewFilterInput
+  ): [ContentView!]!
+  """Return details for the creator."""
+  creator(
+    """Unique identifier for the creator in Archive's system."""
+    id: ID!
+  ): Creator!
+  """
+  Return a single saved Creator View by ID for the current workspace, or null if no such view exists
+  here. Pair with creators(presetId:) to fetch the creators belonging to a view.
+  """
+  creatorView(
+    """FilterPreset UUID of the creator view to fetch."""
+    id: ID!
+  ): CreatorView
+  """
+  List saved Creator Views for the current workspace, ordered by most-recently-updated first. Pair
+  with creators(presetId:) to fetch the creators belonging to a view. Returns at most 1000 rows;
+  this field is not paginated.
+  """
+  creatorViews(
+    """
+    Optional filter criteria. When omitted or empty, returns the current workspace's creator views.
+    Default = {}
+    """
+    filter: CreatorViewFilterInput
+  ): [CreatorView!]!
+  """List and paginate creators for the current workspace, ordered newest first."""
+  creators(
+    """Cursor for fetching the next page of results. Default = null"""
+    after: String
+    """Creator custom attributes conditions. Default = []"""
+    customAttributeConditions: [CustomAttributeConditionInput!]
+    """Filter criteria to narrow down results (e.g. by canonical location). Default = {}"""
+    filter: CreatorFilterInput
+    """Number of creators to return (page size). Default = 20"""
+    first: Int
+    """
+    Saved Creator View ID. When provided, inline filter and customAttributeConditions are ignored;
+    the view's stored conditions and sortBy drive the result set. The view's stored filters blob is
+    NOT applied — a view whose only narrowing lives in filters returns the whole workspace (see
+    README §13.2). Accepts IDs returned by creatorViews / creatorView (workspace Creator Views, GA),
+    or by campaignCreatorViews(campaignId:) / campaignCreatorView(id:) (campaign-scoped, ALPHA — opt
+    in with the campaign_creator_views header). Non-Creator-View IDs raise a GraphQL error with
+    extensions.code = "WRONG_VIEW_TYPE"; cross-shop or unknown IDs raise with extensions.code =
+    "NOT_FOUND". Default = null
+    """
+    presetId: ID
+  ): CreatorConnection!
+  """
+  Retrieve custom attribute schemas to interpret customAttributes values. Returns at most 1000 rows;
+  this field is not paginated.
+  """
+  customAttributeSchemas(
+    """Entity type to get schemas for (ITEM or CREATOR)."""
+    entity: CustomAttributeSchemaEntity!
+  ): [CustomAttributeSchema!]!
+  """Paginated history of engagement metric snapshots for a specific item, ordered newest first."""
+  engagementHistory(
+    """Cursor for fetching the next page of results. Default = null"""
+    after: String
+    """Filter criteria for engagement history entries. Default = null"""
+    filter: EngagementHistoryFilterInput
+    """Number of entries to return (page size). Default = 20"""
+    first: Int
+    """The ID of the item to fetch engagement history for."""
+    itemId: ID!
+  ): EngagementHistoryConnection!
+  """
+  List saved filter presets for items queries in the current workspace. Returns at most 1000 rows;
+  this field is not paginated.
+  """
+  filterPresets: [FilterPreset!]!
+  """
+  Look up item IDs by social media URLs within the current workspace. Accepts any public HTTP(S)
+  URL. INVALID_URL is returned only for malformed / non-HTTP URLs or private/reserved hosts; a valid
+  public URL we cannot resolve (unrecognized shape, short link, or no matching item) returns
+  NOT_FOUND. Recognized shapes (non-exhaustive hint): Instagram (/p/, /reel/, /reels/), TikTok
+  (@user/video/{id}, @user/photo/{id}), and YouTube (/shorts/, /watch?v=, youtu.be/).
+  """
+  itemIdsByUrl(
+    """
+    Public HTTP(S) URLs to look up (1-100). Any public URL is accepted; INVALID_URL only for
+    malformed / non-HTTP URLs or private/reserved hosts, otherwise FOUND or NOT_FOUND.
+    """
+    urls: [String!]!
+  ): [UrlLookupResult!]!
+  """Search and paginate archived items (social content) for the current workspace."""
+  items(
+    """Cursor for fetching the next page of results."""
+    after: String
+    """Custom attribute filter conditions. Default = []"""
+    customAttributeConditions: [CustomAttributeConditionInput!]
+    """
+    Filter criteria to narrow down results. Default = {accountNames: [], campaignsIds: [],
+    collectionsIds: [], ids: [], shopifyProductsIds: [], socialProfileAccountTypes: [],
+    socialProfileIds: [], sourcesIds: [], tagsNames: [], viralityScore: []}
+    """
+    filter: ItemFilterInput
+    """Number of items to return (page size). Default = 20"""
+    first: Int
+    """
+    Filter preset ID. When provided, sorting, filter, and customAttributeConditions are ignored.
+    Must reference a preset with accessor media_deck or collections — pass IDs returned by
+    contentViews / collections queries. Unknown, cross-workspace, or wrong-accessor preset IDs raise
+    a GraphQL error with extensions.code = "WRONG_VIEW_TYPE_FOR_ITEMS".
+    """
+    presetId: ID
+    """
+    Sorting instructions to apply to the result set. Default = [{sortKey: TAKEN_AT, sortOrder:
+    DESC}]
+    """
+    sorting: [ItemSortingInput!]
+  ): ItemConnection!
+  """
+  Retrieve media contents (images / videos) for shop items (itemIds) or for CompetitorBrandItem rows
+  (competitorBrandItemIds). Pass exactly one. See the resolver description for routing details.
+  """
+  mediaContents(
+    """
+    CompetitorBrandItem UUIDs to fetch contents for. Obtain them from the
+    competitorBrandItems(brandId:, filter:) query. Mutually exclusive with itemIds.
+    """
+    competitorBrandItemIds: [ID!]
+    """Item (shop-item) UUIDs to fetch contents for. Mutually exclusive with competitorBrandItemIds."""
+    itemIds: [ID!]
+  ): [MediaContent!]!
+  """Return details for an operation by ID, including status and progress."""
+  operation(
+    """Unique identifier for the operation."""
+    id: ID!
+  ): Operation
+  """List operations for the current workspace, ordered newest first."""
+  operations(
+    """Cursor for fetching the next page of results. Default = null"""
+    after: String
+    """Number of operations to return (page size). Default = 20"""
+    first: Int
+  ): OperationConnection!
+  """Return details for a social profile by ID or account identifier."""
+  socialProfile(
+    """Username or handle on the social platform (e.g., "nike" for instagram.com/nike)."""
+    accountName: String
+    """
+    When true, fetches profile from social platform if not archived locally. May increase response
+    time. Default = false
+    """
+    fallback: Boolean
+    """Unique identifier of the social profile within your workspace."""
+    id: ID
+    """Social platform: instagram, tiktok, or youtube. Required when using account_name."""
+    provider: Provider
+  ): SocialProfile
+  """
+  Return a single saved Social Profile view by ID for the current workspace, or null if no such view
+  exists here.
+  """
+  socialProfileView(
+    """FilterPreset UUID of the social profile view to fetch."""
+    id: ID!
+  ): SocialProfileView
+  """
+  List saved Social Profile views for the current workspace, ordered by most-recently-updated first.
+  Returns at most 1000 rows; this field is not paginated.
+  """
+  socialProfileViews(
+    """
+    Optional filter criteria. When omitted or empty, returns the current workspace's social-profile
+    views. Default = {}
+    """
+    filter: SocialProfileViewFilterInput
+  ): [SocialProfileView!]!
+  """
+  List and paginate social profiles for the current workspace. Pass presetId (a Social Profile View
+  id from socialProfileViews / socialProfileView) to drive results off the view's stored conditions
+  and sort; otherwise narrow with filter.
+  """
+  socialProfiles(
+    """
+    Opaque cursor for fetching the next page. Pass the pageInfo.endCursor from a previous response.
+    Per-node edge cursors are NOT valid here. Default = null
+    """
+    after: String
+    """Filter criteria to narrow down results (e.g. by platform). Default = {}"""
+    filter: SocialProfileFilterInput
+    """Number of social profiles to return (page size). Default = 20"""
+    first: Int
+    """
+    Saved Social Profile View ID. When provided, inline filter is ignored; the view's stored
+    customAttributeConditions and sort drive the result set. The view's stored filters blob is NOT
+    applied — a view whose only narrowing lives in filters returns the whole workspace (see README
+    §13.2). Accepts IDs returned by socialProfileViews / socialProfileView. Non-Social-Profile-View
+    IDs raise with extensions.code = "WRONG_VIEW_TYPE"; cross-shop or unknown IDs raise with
+    extensions.code = "NOT_FOUND". Default = null
+    """
+    presetId: ID
+  ): SocialProfileConnection!
+  """Fetch transcriptions for one or more media contents belonging to the current workspace."""
+  transcriptions(
+    """Filter by item IDs (maximum 1000)."""
+    itemIds: [ID!]
+    """Filter by media content IDs (maximum 20)."""
+    mediaContentIds: [ID!]
+  ): [Transcription!]!
+  """
+  Return a single user-created view group by ID for the current workspace, or null if no such group
+  exists here.
+  """
+  viewGroup(
+    """UUID of the ViewGroup to fetch."""
+    id: ID!
+  ): ViewGroup
+  """
+  List user-created view groups for the current workspace, ordered oldest-first. Returns at most
+  1000 rows; this field is not paginated.
+  """
+  viewGroups: [ViewGroup!]!
+  """Return details for the current workspace, inferred from the WORKSPACE-ID header."""
+  workspace: Workspace!
+  """List all workspaces that the current API user has access to."""
+  workspaces(
+    """Cursor for fetching the next page of results. Default = null"""
+    after: String
+    """Number of workspaces to return (page size). Default = 20"""
+    first: Int
+  ): WorkspaceConnection!
+}
+
+type Mutation {
+  """Add an item to one or more collections."""
+  addItemToCollections(
+    """Automatically create collections by name if they do not exist. Default = false"""
+    autoCreate: Boolean
+    """
+    IDs of existing collections, as returned by the collections query for this workspace. Several id
+    forms are accepted depending on how the workspace stores Collections. An id from another
+    workspace, or one this workspace cannot write through this API, rejects the WHOLE call with a
+    userErrors entry naming the offending id under collectionIds. Default = []
+    """
+    collectionIds: [ID!]
+    """Names of collections to add the item to. Default = []"""
+    collectionNames: [String!]
+    """ID of the item to add to collections."""
+    itemId: ID!
+  ): AddToCollectionsPayload
+  """Create a Collection (saved tag set) in the current workspace."""
+  createCollection(
+    """Mutation input."""
+    input: CreateCollectionInput!
+  ): CreateCollectionPayload
+  """Create a saved content (media deck) view for the current workspace."""
+  createContentView(
+    """Mutation input."""
+    input: CreateContentViewInput!
+  ): CreateContentViewPayload
+  """Create a saved Creator View for the current workspace."""
+  createCreatorView(
+    """Mutation input."""
+    input: CreateCreatorViewInput!
+  ): CreateCreatorViewPayload
+  """Create a saved Social Profile view for the current workspace."""
+  createSocialProfileView(
+    """Mutation input."""
+    input: CreateSocialProfileViewInput!
+  ): CreateSocialProfileViewPayload
+  """Create a user-created view group for the current workspace."""
+  createViewGroup(
+    """Mutation input."""
+    input: CreateViewGroupInput!
+  ): CreateViewGroupPayload
+  """Delete a Collection (strips the tag from items; does not delete items)."""
+  deleteCollection(
+    """
+    UUID of the Collection to delete (as returned by collections). Collection management is
+    available only in workspaces whose Collections use the standard storage; where they use an older
+    format the ids collections returns are not accepted here and the call returns a userError
+    without changing anything.
+    """
+    id: ID!
+  ): DeleteCollectionPayload
+  """Hard-delete a saved content (media deck) view."""
+  deleteContentView(
+    """FilterPreset UUID of the content view to delete."""
+    id: ID!
+  ): DeleteContentViewPayload
+  """Hard-delete a saved Creator View."""
+  deleteCreatorView(
+    """FilterPreset UUID of the creator view to delete."""
+    id: ID!
+  ): DeleteCreatorViewPayload
+  """Hard-delete a saved Social Profile view."""
+  deleteSocialProfileView(
+    """FilterPreset UUID of the social profile view to delete."""
+    id: ID!
+  ): DeleteSocialProfileViewPayload
+  """
+  Hard-delete a user-created view group. Returns the FilterPreset UUIDs whose group membership was
+  removed so clients can invalidate cached views.
+  """
+  deleteViewGroup(
+    """UUID of the view group to delete."""
+    id: ID!
+  ): DeleteViewGroupPayload
+  """Move a Collection into a view group, or out (when groupId is null)."""
+  moveCollectionToGroup(
+    """
+    UUID of the Collection to move (as returned by collections). Collection management is available
+    only in workspaces whose Collections use the standard storage; where they use an older format
+    the ids collections returns are not accepted here and the call returns a userError without
+    changing anything.
+    """
+    collectionId: ID!
+    """
+    Target ViewGroup UUID. Pass null to remove the Collection from any group it currently belongs
+    to.
+    """
+    groupId: ID
+  ): MoveCollectionToGroupPayload
+  """Move a saved content (media deck) view into a view group, or out (when groupId is null)."""
+  moveContentViewToGroup(
+    """Target ViewGroup UUID. Pass null to remove the view from any group it currently belongs to."""
+    groupId: ID
+    """FilterPreset UUID of the Content View to move."""
+    viewId: ID!
+  ): MoveContentViewToGroupPayload
+  """Move a saved Creator View into a view group, or out (when groupId is null)."""
+  moveCreatorViewToGroup(
+    """Target ViewGroup UUID. Pass null to remove the view from any group it currently belongs to."""
+    groupId: ID
+    """FilterPreset UUID of the Creator View to move."""
+    viewId: ID!
+  ): MoveCreatorViewToGroupPayload
+  """Move a saved Social Profile view into a view group, or out (when groupId is null)."""
+  moveSocialProfileViewToGroup(
+    """Target ViewGroup UUID. Pass null to remove the view from any group it currently belongs to."""
+    groupId: ID
+    """FilterPreset UUID of the Social Profile View to move."""
+    viewId: ID!
+  ): MoveSocialProfileViewToGroupPayload
+  """Queue a bulk engagement data refresh for the specified items."""
+  refetchEngagementBulk(
+    """
+    IDs of items to refresh engagement data for. Items belonging to other workspaces are silently
+    ignored. Instagram stories are automatically excluded.
+    """
+    itemIds: [ID!]!
+  ): RefetchBulkPayload
+  """Remove an item from one or more collections."""
+  removeItemFromCollections(
+    """
+    IDs of collections to remove the item from, as returned by the collections query for this
+    workspace. Several id forms are accepted depending on how the workspace stores Collections. An
+    id from another workspace, or one this workspace cannot write through this API, rejects the
+    WHOLE call with a userErrors entry naming the offending id under collectionIds. Default = []
+    """
+    collectionIds: [ID!]
+    """Names of collections to remove the item from. Default = []"""
+    collectionNames: [String!]
+    """ID of the item to remove from collections."""
+    itemId: ID!
+  ): RemoveFromCollectionsPayload
+  """
+  Reorder the submitted Content View, Social Profile View, and Creator View ids within the named
+  group. Members omitted from viewIds keep their relative order and sort after the listed views.
+  """
+  reorderViewsInGroup(
+    """UUID of the ViewGroup whose member views should be reordered."""
+    groupId: ID!
+    """
+    FilterPreset UUIDs in the desired display order. Must list only views that are currently members
+    of this group. The first id becomes position 1.
+    """
+    viewIds: [ID!]!
+  ): ReorderViewsInGroupPayload
+  """Rename a Collection in the current workspace."""
+  updateCollection(
+    """
+    UUID of the Collection to update (as returned by createCollection / collections). Collection
+    management is available only in workspaces whose Collections use the standard storage; where
+    they use an older format the ids collections returns are not accepted here and the call returns
+    a userError without changing anything.
+    """
+    id: ID!
+    """Mutation input."""
+    input: UpdateCollectionInput!
+  ): UpdateCollectionPayload
+  """Partial-update a saved content (media deck) view."""
+  updateContentView(
+    """FilterPreset UUID of the content view to update."""
+    id: ID!
+    """Partial-update input. Only provided fields are updated."""
+    input: UpdateContentViewInput!
+  ): UpdateContentViewPayload
+  """Partial-update a saved Creator View."""
+  updateCreatorView(
+    """FilterPreset UUID of the creator view to update."""
+    id: ID!
+    """Partial-update input. Only provided fields are updated."""
+    input: UpdateCreatorViewInput!
+  ): UpdateCreatorViewPayload
+  """Partial-update a saved Social Profile view."""
+  updateSocialProfileView(
+    """FilterPreset UUID of the social profile view to update."""
+    id: ID!
+    """Partial-update input. Only provided fields are updated."""
+    input: UpdateSocialProfileViewInput!
+  ): UpdateSocialProfileViewPayload
+  """Rename a user-created view group."""
+  updateViewGroup(
+    """UUID of the view group to rename."""
+    id: ID!
+    """Update input. name is the only mutable field today."""
+    input: UpdateViewGroupInput!
+  ): UpdateViewGroupPayload
+  """Enqueue a single UGC URL for import into the current workspace."""
+  uploadItemFromUrl(
+    """Mutation input."""
+    input: UploadItemFromUrlInput!
+  ): UploadItemFromUrlPayload
+}
+
+"""
+Represents non-fractional signed whole numeric values. Since the value may exceed the size of a
+32-bit integer, it's encoded as a string.
+"""
+scalar BigInt
+
+"""
+Represents an ISO 8601-encoded date and time string. For example, 3:50 pm on September 7, 2019 in
+the time zone of UTC (Coordinated Universal Time) is represented as "2019-09-07T15:50:00Z"
+"""
+scalar DateTime
+
+"""
+An ISO 8601-encoded date and time. Input must be UTC (e.g., YYYY-MM-DDTHH:MM:SSZ). Output is always
+formatted in UTC (ending with Z).
+"""
+scalar DateTimeWithZone
+
+"""
+An ISO 8601-encoded date (YYYY-MM-DD). Input is parsed into the start of the day in the application
+timezone.
+"""
+scalar DateWithZone
+
+"""Represents untyped JSON"""
+scalar JSON
+
+"""Field to use when ordering posts under a Competitor Insights brand."""
+enum CompetitorBrandItemSortKey {
+  """
+  Sort by earned media value (EMV). Rankings are computed per calendar month — for a takenAt window
+  spanning multiple months, results are ordered within each month rather than as a single cross-
+  month ranking.
+  """
+  EARNED_MEDIA_VALUE
+  """Sort by when the content was originally posted on the social platform."""
+  TAKEN_AT
+}
+
+"""Availability of the workspace's own-brand metrics for the requested window."""
+enum CompetitorBrandOwnMetricsStatus {
+  """
+  Own-brand metrics were computed. Null metric fields mean no data in this window (distinct from
+  zero).
+  """
+  AVAILABLE
+  """
+  Own-brand metrics could not be computed. The accompanying error explains whether to retry; metric
+  fields are null.
+  """
+  UNAVAILABLE
+}
+
+"""Aggregation window for Competitor Insights metrics."""
+enum CompetitorBrandStatsPeriod {
+  """Aggregate over the month containing the anchor date."""
+  MONTH
+  """Aggregate over the week containing the anchor date."""
+  WEEK
+}
+
+"""Entity type that custom attributes can be attached to."""
+enum CustomAttributeSchemaEntity {
+  """Creator profile"""
+  CREATOR
+  """Item (archived social content)"""
+  ITEM
+}
+
+"""
+Data type of a workspace-defined custom attribute. Determines the value shape and the valid filter
+operators for conditions on that attribute.
+"""
+enum CustomAttributeType {
+  """True/false value."""
+  BOOLEAN
+  """List of true/false values."""
+  BOOLEAN_LIST
+  """Calendar date value (ISO 8601, no time component)."""
+  DATE
+  """Date-and-time value (ISO 8601)."""
+  DATETIME
+  """List of date-and-time values (ISO 8601)."""
+  DATETIME_LIST
+  """List of calendar date values (ISO 8601, no time component)."""
+  DATE_LIST
+  """Email address value."""
+  EMAIL
+  """Multiple choices from a predefined option list; the stored value is an array of option IDs."""
+  MULTIPLE_SELECT
+  """
+  Multiple choices from a predefined option list; the stored value is an array of option IDs.
+  Successor revision of MULTIPLE_SELECT with identical filtering behavior.
+  """
+  MULTIPLE_SELECT_V2
+  """Numeric value."""
+  NUMBER
+  """List of numeric values."""
+  NUMBER_LIST
+  """Phone number value."""
+  PHONE
+  """
+  Structured shipping address. Not filterable — conditions with this type are rejected with a
+  validation error; read the value from the record's customAttributes instead.
+  """
+  SHIPPING_ADDRESS
+  """Single choice from a predefined option list; the stored value is an option ID."""
+  SINGLE_SELECT_V2
+  """
+  Single choice from a predefined option list; the stored value is an option ID. Successor revision
+  of SINGLE_SELECT_V2 with identical filtering behavior.
+  """
+  SINGLE_SELECT_V3
+  """Free-form text value."""
+  TEXT
+  """List of free-form text values."""
+  TEXT_LIST
+  """URL value."""
+  URL
+}
+
+"""Status of a contract request (usage rights, whitelisting, etc.)."""
+enum FilterContractStatus {
+  """Contract has been approved by the creator."""
+  APPROVED
+  """Contract approval has expired."""
+  EXPIRED
+  """Contract request is queued for processing."""
+  IN_QUEUE
+  """Contract request was rejected by the creator."""
+  REJECTED
+  """Contract has been requested but not yet responded to."""
+  REQUESTED
+}
+
+"""Engagement metric that an engagement range filter applies to."""
+enum FilterEngagementField {
+  """Total number of comments."""
+  COMMENT_COUNT
+  """Estimated earned media value (EMV) in cents."""
+  EARNED_MEDIA_VALUE
+  """Engagement rate: total engagements divided by the creator's follower count."""
+  ENGAGEMENTS_RATE
+  """Impressions rate: views, plays, or estimated impressions divided by the creator's follower count."""
+  IMPRESSIONS_RATE
+  """Total number of likes."""
+  LIKE_COUNT
+  """Number of views, plays, or estimated impressions."""
+  MERGED_VIEW_PLAY_COUNT
+  """Total number of shares."""
+  SHARE_COUNT
+}
+
+"""How an item was added to Archive."""
+enum FilterImportType {
+  """Item was captured automatically (e.g. by social listening)."""
+  AUTOMATIC
+  """Item was imported on request by a user."""
+  MANUAL
+}
+
+"""Platform-specific content format of an item."""
+enum FilterItemType {
+  """Instagram feed post."""
+  POST
+  """Instagram Reel."""
+  REEL
+  """Instagram Story."""
+  STORY
+  """TikTok video post."""
+  TIKTOK
+  """TikTok Story."""
+  TIKTOK_STORY
+  """YouTube video."""
+  YOUTUBE
+  """YouTube Short."""
+  YOUTUBE_SHORT
+}
+
+"""
+Comparison operator for a custom-attribute condition. The valid subset depends on the attribute
+type: text and single-select, number, date, boolean, or multi-value (multi-select and list types).
+"""
+enum FilterOperator {
+  """Inclusive range match for number and date types; value is { from, to }."""
+  BETWEEN
+  """
+  For text-like types: substring match. For multi-select and list types: matches records containing
+  ANY of the provided values (OR semantics).
+  """
+  CONTAINS
+  """
+  For multi-select custom attributes: matches records whose value array contains ALL of the provided
+  values (AND semantics).
+  """
+  CONTAINS_ALL
+  """
+  For text-like types: excludes substring matches. For multi-select and list types: excludes records
+  containing any of the provided values.
+  """
+  DOES_NOT_CONTAIN
+  """Suffix match, for text-like types."""
+  ENDS_WITH
+  """Equality, for number and date types."""
+  EQUAL
+  """
+  Exact match. For text and single-select types (for selects, value is the option ID) and BOOLEAN
+  (value is true/false).
+  """
+  IS
+  """Matches records with no value set. Value is ignored — pass null."""
+  IS_EMPTY
+  """Exact non-match, for text and single-select types."""
+  IS_NOT
+  """Matches records with any value set. Value is ignored — pass null."""
+  IS_NOT_EMPTY
+  """
+  Matches date values in a period relative to today; value is { relation: "past"|"this"|"next",
+  period: "day"|"week"|"month"|"year" } (offset optional).
+  """
+  IS_RELATIVE_TO_TODAY
+  """Strictly less than, for number and date types."""
+  LESS_THAN
+  """Less than or equal, for number and date types."""
+  LESS_THAN_OR_EQUAL
+  """Strictly greater than, for number and date types."""
+  MORE_THAN
+  """Greater than or equal, for number and date types."""
+  MORE_THAN_OR_EQUAL
+  """Inequality, for number and date types."""
+  NOT_EQUAL
+  """Prefix match, for text-like types."""
+  STARTS_WITH
+}
+
+"""Filter preset accessor type"""
+enum FilterPresetAccessor {
+  """Collections filter preset"""
+  COLLECTIONS
+  """Media deck filter preset"""
+  MEDIA_DECK
+}
+
+"""Mode to use when performing a super search query."""
+enum FilterSuperSearchMode {
+  """Search by visual/semantic similarity using content embeddings."""
+  EMBEDDING_CONTENT
+  """Search by fuzzy matching against post captions."""
+  FUZZY_CAPTION
+  """Search by fuzzy matching against video/audio transcriptions."""
+  FUZZY_TRANSCRIPTION
+}
+
+"""Eligibility filter for items authored by TikTok creators reachable for whitelisting."""
+enum FilterTikTokWhitelistingEligibility {
+  """Match items authored by TikTok creators reachable via manual DM for whitelisting."""
+  ALL
+}
+
+"""
+Categorized virality score used to filter items by how strongly the content outperforms its expected
+view-to-follower ratio. Higher categories indicate more viral content.
+"""
+enum FilterViralityScore {
+  """
+  Content that significantly outperforms its expected reach. Typically corresponds to a view-to-
+  follower ratio of 4.0 or higher.
+  """
+  HIGH
+  """
+  Content performing close to expected baseline relative to audience size. Typically corresponds to
+  a view-to-follower ratio between ~1.0 and 2.0.
+  """
+  LOW
+  """
+  Content performing above average relative to audience size. Typically corresponds to a view-to-
+  follower ratio between ~2.0 and 4.0.
+  """
+  MEDIUM
+  """
+  Content performing below expected reach, with low relative visibility. Typically corresponds to a
+  view-to-follower ratio below ~1.0.
+  """
+  NOT_VIRAL
+}
+
+"""Lifecycle status of a workspace integration (a connected social account)."""
+enum IntegrationStatus {
+  """The integration is active and verified — Archive can fetch content for this account."""
+  CONNECTED
+  """
+  The integration has been removed by the user or has failed and is no longer active. Archive cannot
+  fetch new content for this account until it is reconnected.
+  """
+  DISCONNECTED
+  """The integration is being established — initial verification or onboarding has not completed yet."""
+  PENDING
+}
+
+"""Field to use when ordering items in search results."""
+enum ItemSortKey {
+  """Sort by creator account name."""
+  ACCOUNT_NAME
+  """Sort by total number of comments."""
+  COMMENT_COUNT
+  """Sort by earned media value (EMV)."""
+  EARNED_MEDIA_VALUE
+  """Sort by exponential virality score."""
+  EXPONENTIAL_VIRALITY
+  """Sort by number of followers on the posting account."""
+  FOLLOWERS_COUNT
+  """Sort by total number of likes."""
+  LIKE_COUNT
+  """Sort by linear virality score."""
+  LINEAR_VIRALITY
+  """Sort by the combined view/play count across platforms."""
+  MERGED_VIEW_PLAY_COUNT
+  """Sort by number of shares."""
+  SHARE_COUNT
+  """Sort by when the content was originally posted on the social platform."""
+  TAKEN_AT
+}
+
+"""Type of social content represented by this item on its source platform."""
+enum ItemType {
+  """Standard feed post, such as a single image or carousel post on Instagram."""
+  POST
+  """Short-form vertical video published as a Reel or equivalent format."""
+  REEL
+  """Short-form vertical video such as a YouTube Short or similar format."""
+  SHORT
+  """Ephemeral story content, typically available for a limited time."""
+  STORY
+}
+
+"""Underlying type of the media asset."""
+enum MediaContentType {
+  """Static image content (for example photos, thumbnails, frames)."""
+  IMAGE
+  """Video content (for example Reels, TikToks, Stories, YouTube videos)."""
+  VIDEO
+}
+
+"""Current processing status of an operation."""
+enum OperationStatus {
+  """All items in the operation have been processed successfully."""
+  COMPLETED
+  """All items in the operation have failed."""
+  FAILED
+  """The operation finished but some items failed while others succeeded."""
+  PARTIAL
+  """The operation is currently being processed."""
+  PROCESSING
+  """The operation has been created but processing has not yet started."""
+  QUEUED
+}
+
+"""Platform or system from which content, profiles, or metadata originate."""
+enum Provider {
+  """Instagram platform integration, including posts, reels, stories, and profile data."""
+  INSTAGRAM
+  """Internal Archive-managed source used for synthetic or system-generated content."""
+  INTERNAL
+  """TikTok platform integration, including videos and creator profile data."""
+  TIKTOK
+  """YouTube platform integration, including Shorts, videos, thumbnails, and profile data."""
+  YOUTUBE
+}
+
+"""
+Account type of the social profile attached to an item. Values currently reflect Instagram's
+account_type taxonomy only — TikTok and YouTube profiles do not expose an equivalent classification,
+so filtering by these values implicitly scopes the result set to Instagram items. The enum will grow
+if/when other platforms introduce comparable typing.
+"""
+enum SocialProfileAccountType {
+  """Instagram Business account (business features and insights enabled)."""
+  BUSINESS
+  """Instagram Creator account (creator features enabled, distinct from Business)."""
+  CREATOR
+  """Personal Instagram account (consumer profile, no business/creator features)."""
+  PERSONAL
+}
+
+"""Direction to apply when sorting items."""
+enum SortOrder {
+  """Sort in ascending order (for example oldest date or smallest number first)."""
+  ASC
+  """Sort in descending order (for example newest date or largest number first)."""
+  DESC
+}
+
+"""Category of tag based on how it appears in social content."""
+enum TagType {
+  """Hashtag tag (e.g. #archive)"""
+  HASHTAG
+  """User mention tag (e.g. @archive)"""
+  MENTION
+}
+
+"""Status of a URL lookup operation against the current workspace."""
+enum UrlLookupStatus {
+  """Item found in the current workspace matching the provided public HTTP(S) URL."""
+  FOUND
+  """The input was malformed, used a non-HTTP(S) scheme, or targeted a private/reserved host."""
+  INVALID_URL
+  """The input was a valid public HTTP(S) URL, but no matching item exists in the current workspace."""
+  NOT_FOUND
+}
+
+"""
+Categorized virality score representing how strongly a piece of content outperforms its expected
+view-to-follower ratio. Higher categories indicate more viral content.
+"""
+enum ViralityScore {
+  """
+  Content that significantly outperforms its expected reach. Typically corresponds to a view-to-
+  follower ratio of 4.0 or higher.
+  """
+  HIGH
+  """
+  Content performing close to expected baseline relative to audience size. Typically corresponds to
+  a view-to-follower ratio between ~1.0 and 2.0.
+  """
+  LOW
+  """
+  Content performing above average relative to audience size. Typically corresponds to a view-to-
+  follower ratio between ~2.0 and 4.0.
+  """
+  MEDIUM
+  """
+  Content performing below expected reach, with low relative visibility. Typically corresponds to a
+  view-to-follower ratio below ~1.0.
+  """
+  NOT_VIRAL
+}
+
+"""Union of media content types associated with an item (image or video)."""
+union MediaContent = Image | Video
+
+"""Filter criteria for paginating posts within a Competitor Insights brand."""
+input CompetitorBrandItemFilterInput {
+  """
+  Time window over post publication date. Both from and to are required — unbounded time windows are
+  not supported.
+  """
+  takenAt: FilterDateRangeInput!
+}
+
+"""Single-field sort configuration for competitorBrandItems. Compound sort is not supported."""
+input CompetitorBrandItemSortingInput {
+  """Which field to sort by."""
+  sortKey: CompetitorBrandItemSortKey!
+  """Whether to sort ascending (ASC) or descending (DESC)."""
+  sortOrder: SortOrder!
+}
+
+"""Filter criteria for listing content views."""
+input ContentViewFilterInput {
+  """When provided, returns only views belonging to this group."""
+  groupId: ID
+}
+
+"""Input for the createCollection mutation."""
+input CreateCollectionInput {
+  """Display name for the new Collection. Must be unique within the workspace."""
+  name: String!
+}
+
+"""Input for the createContentView mutation."""
+input CreateContentViewInput {
+  """Custom-attribute conditions to narrow the filter set. Default = []"""
+  customAttributeConditions: [CustomAttributeConditionInput!]
+  """Opaque filter blob defining which items belong to the view."""
+  filters: JSON!
+  """Display name for the new content view."""
+  name: String!
+  """Whether reporting stats should be surfaced. Defaults to true. Default = true"""
+  showReportingStats: Boolean
+  """Sort directives applied when listing items via this view. Defaults to []."""
+  sort: JSON
+}
+
+"""Input for the createCreatorView mutation."""
+input CreateCreatorViewInput {
+  """Custom-attribute conditions to narrow the filter set. Default = []"""
+  customAttributeConditions: [CustomAttributeConditionInput!]
+  """
+  Opaque filter blob, stored and echoed back but NOT applied when reading the view:
+  creators(presetId:) narrows ONLY by this view's customAttributeConditions and sort. Use
+  customAttributeConditions to actually narrow which creators the view returns. Pass {} unless
+  cloning an existing view verbatim.
+  """
+  filters: JSON!
+  """Display name for the new creator view."""
+  name: String!
+  """Whether reporting stats should be surfaced. Defaults to true. Default = true"""
+  showReportingStats: Boolean
+  """Sort directives applied when listing creators via this view. Defaults to []."""
+  sort: JSON
+}
+
+"""Input for the createSocialProfileView mutation."""
+input CreateSocialProfileViewInput {
+  """Custom-attribute conditions to narrow the filter set. Default = []"""
+  customAttributeConditions: [CustomAttributeConditionInput!]
+  """
+  Opaque filter blob, stored and echoed back but NOT applied when reading the view:
+  socialProfiles(presetId:) narrows ONLY by this view's customAttributeConditions and sort. Use
+  customAttributeConditions to actually narrow which social profiles the view returns. Pass {}
+  unless cloning an existing view verbatim.
+  """
+  filters: JSON!
+  """Display name for the new social profile view."""
+  name: String!
+  """Whether reporting stats should be surfaced. Defaults to true. Default = true"""
+  showReportingStats: Boolean
+  """Sort directives applied when listing social profiles via this view. Defaults to []."""
+  sort: JSON
+}
+
+"""Input for the createViewGroup mutation."""
+input CreateViewGroupInput {
+  """Display name for the new view group. Must be unique within the workspace."""
+  name: String!
+}
+
+"""Filter criteria for searching creators."""
+input CreatorFilterInput {
+  """
+  Filter creators by canonical location. Each entry ANDs its populated components
+  (country/region/city); multiple entries OR together — useful for disambiguating same-named cities
+  (e.g. Portland, Oregon vs. Portland, Maine). Canonical values come from the Geo normalization
+  pipeline; omit a component to leave it unconstrained.
+  """
+  locations: [LocationCanonicalInput!]
+}
+
+"""Filter criteria for listing creator views."""
+input CreatorViewFilterInput {
+  """When provided, returns only views belonging to this group."""
+  groupId: ID
+}
+
+"""
+A single filter condition on a workspace-defined custom attribute. Multiple conditions are combined
+with AND.
+"""
+input CustomAttributeConditionInput {
+  """
+  Key of the custom attribute to filter on, as returned by customAttributeSchemas (e.g.
+  "sentiment").
+  """
+  field: String!
+  """Comparison operator. The valid set depends on the attribute type — see FilterOperator."""
+  operator: FilterOperator!
+  """
+  Type of the custom attribute, as returned by customAttributeSchemas. Determines the expected value
+  shape and the valid operators.
+  """
+  type: CustomAttributeType!
+  """
+  Comparison value; the shape depends on type: a string for text-like types, an option ID for
+  single-selects, a number for NUMBER, an ISO 8601 string for dates, true/false for BOOLEAN, an
+  array for multi-select and list types. BETWEEN takes { from, to }. Pass null for IS_EMPTY /
+  IS_NOT_EMPTY.
+  """
+  value: JSON
+}
+
+"""Filter criteria for engagement history entries."""
+input EngagementHistoryFilterInput {
+  """Filter by the date range when engagement metrics were captured."""
+  capturedAt: FilterDateRangeInput
+}
+
+"""Inclusive date-time range. Omit a bound to leave that side open-ended."""
+input FilterDateRangeInput {
+  """Inclusive lower bound (ISO 8601). Omit for no lower bound."""
+  from: DateTime
+  """Inclusive upper bound (ISO 8601). Omit for no upper bound."""
+  to: DateTime
+}
+
+"""Filters items whose value for a chosen engagement metric falls within an inclusive numeric range."""
+input FilterEngagementRangeInput {
+  """Engagement metric to filter on."""
+  field: FilterEngagementField!
+  """Inclusive numeric range the metric value must fall within."""
+  range: FilterIntegerRangeInput!
+}
+
+"""Inclusive integer range. Omit a bound to leave that side open-ended."""
+input FilterIntegerRangeInput {
+  """Inclusive lower bound. Omit for no lower bound."""
+  from: Int
+  """Inclusive upper bound. Omit for no upper bound."""
+  to: Int
+}
+
+"""Input for performing visual or text-based super search across items."""
+input FilterSuperSearchInput {
+  """Name of an uploaded file to use for visual similarity search."""
+  fileName: String
+  """URL of an external image to use for visual similarity search."""
+  imageUrl: String
+  """Search mode determining how the query is processed."""
+  mode: FilterSuperSearchMode
+  """Text query to search captions, transcriptions, or semantic content."""
+  searchQuery: String
+  """ID of a media content to find visually similar items."""
+  similarMediaContentId: ID
+}
+
+"""Filter criteria for searching archived items."""
+input ItemFilterInput {
+  """Filter by social profile account names/handles. Default = []"""
+  accountNames: [String!]
+  """Filter to items associated with any of the given campaign IDs. Default = []"""
+  campaignsIds: [ID!]
+  """
+  Filter to items that belong to any of the given collection IDs in the current workspace. Default =
+  []
+  """
+  collectionsIds: [ID!]
+  """Filter by media content type (IMAGE, VIDEO)."""
+  contentTypes: [MediaContentType!]
+  """
+  Filter by the creator's location. Format: an array of objects, each with optional country, region,
+  city (canonical names from Archive's Geo normalization pipeline; case-sensitive exact match — e.g.
+  "United States", "California", "Los Angeles"). Within a single entry, populated components are
+  AND-ed together. Multiple entries OR together — useful for disambiguating same-named cities (e.g.
+  Portland, Oregon vs. Portland, Maine). Omit a component to leave it unconstrained. Example: [{
+  country: "United States", region: "California" }, { city: "London" }] matches creators in
+  California, USA OR in any city named "London".
+  """
+  creatorLocations: [LocationCanonicalInput!]
+  """Filter by engagement metric ranges (likes, comments, views, etc.)."""
+  engagement: [FilterEngagementRangeInput!]
+  """Filter by social profile follower count range."""
+  followersCount: FilterIntegerRangeInput
+  """Filter to specific item IDs. Default = []"""
+  ids: [ID!]
+  """Filter by how the item was imported (manual or automatic)."""
+  importType: FilterImportType
+  """Filter by Instagram whitelisting request status."""
+  instagramWhitelistingStatus: [FilterContractStatus!]
+  """Filter by item type (POST, REEL, STORY, TIKTOK, TIKTOK_STORY, YOUTUBE, YOUTUBE_SHORT)."""
+  itemTypes: [FilterItemType!]
+  """Filter by source platform (INSTAGRAM, TIKTOK, YOUTUBE, INTERNAL)."""
+  provider: Provider
+  """Filter by associated Shopify product IDs. Default = []"""
+  shopifyProductsIds: [String!]
+  """
+  Filter by the social profile's account type. Values currently reflect Instagram-only typing
+  (Personal / Creator / Business); profiles on platforms without a comparable concept are excluded
+  when this filter is supplied. Mirrors Influencer.account_type. OR semantics across multiple
+  values; empty/omitted skips the filter. Default = []
+  """
+  socialProfileAccountTypes: [SocialProfileAccountType!]
+  """Filter by social profile IDs. Default = []"""
+  socialProfileIds: [ID!]
+  """Filter by source IDs. Default = []"""
+  sourcesIds: [ID!]
+  """Visual or semantic search parameters."""
+  superSearch: FilterSuperSearchInput
+  """Filter by hashtag or mention tag names. Default = []"""
+  tagsNames: [String!]
+  """Filter by publication date range."""
+  takenAt: FilterDateRangeInput
+  """Filter by TikTok Spark Code request status."""
+  tiktokSparkCodeStatus: [FilterContractStatus!]
+  """Filter to items authored by TikTok creators eligible for whitelisting."""
+  tiktokWhitelistingEligibility: FilterTikTokWhitelistingEligibility
+  """
+  Filter by the location tagged on the content itself (UGC location). Format: same as
+  creatorLocations — array of objects with optional country, region, city (canonical, case-sensitive
+  exact match). Within a single entry the populated components AND together; multiple entries OR
+  together. Example: [{ country: "United Kingdom", city: "London" }] matches items whose tagged
+  location resolves to London, UK.
+  """
+  ugcLocations: [LocationCanonicalInput!]
+  """Filter by usage rights request status."""
+  usageRightsStatus: [FilterContractStatus!]
+  """Filter by social profile verification status."""
+  verified: [Boolean!]
+  """Filter by virality score categories. Default = []"""
+  viralityScore: [FilterViralityScore!]
+}
+
+"""Configuration for sorting returned items."""
+input ItemSortingInput {
+  """Which field to sort items by."""
+  sortKey: ItemSortKey!
+  """Whether to sort ascending (ASC) or descending (DESC)."""
+  sortOrder: SortOrder!
+}
+
+"""
+Filter creators by canonical location components produced by the Geo normalization pipeline. Each
+populated component must match exactly (case-sensitive on the canonical value); omitted components
+are ignored.
+"""
+input LocationCanonicalInput {
+  """Canonical city name (e.g. "Portland"). Matches creator.city_canonical exactly."""
+  city: String
+  """Canonical country name (e.g. "United States"). Matches creator.country_canonical exactly."""
+  country: String
+  """Canonical region/state name (e.g. "Oregon"). Matches creator.region_canonical exactly."""
+  region: String
+}
+
+"""Filter criteria for listing social profiles."""
+input SocialProfileFilterInput {
+  """
+  Restrict results to a single social platform (INSTAGRAM, TIKTOK, YOUTUBE, INTERNAL). Maps to the
+  workspace social-profile listing platform filter.
+  """
+  platform: Provider
+}
+
+"""Filter criteria for listing social profile views."""
+input SocialProfileViewFilterInput {
+  """When provided, returns only views belonging to this group."""
+  groupId: ID
+}
+
+"""Input for the updateCollection mutation."""
+input UpdateCollectionInput {
+  """New name for the Collection. Must be unique within the workspace."""
+  name: String!
+}
+
+"""
+Partial-update input for the updateContentView mutation. Only provided fields are updated; omitted
+fields are left unchanged.
+"""
+input UpdateContentViewInput {
+  """
+  Custom-attribute conditions. When provided, replaces the existing list wholesale. An empty array
+  clears all conditions.
+  """
+  customAttributeConditions: [CustomAttributeConditionInput!]
+  """
+  Opaque filter blob. When provided, replaces the existing filter blob wholesale (no element-level
+  merge).
+  """
+  filters: JSON
+  """Display name. When provided, replaces the existing name."""
+  name: String
+  """Whether reporting stats should be surfaced. When provided, replaces the existing flag."""
+  showReportingStats: Boolean
+  """Sort directives. When provided, replaces the existing sort wholesale."""
+  sort: JSON
+}
+
+"""
+Partial-update input for the updateCreatorView mutation. Only provided fields are updated; omitted
+fields are left unchanged.
+"""
+input UpdateCreatorViewInput {
+  """
+  Custom-attribute conditions. When provided, replaces the existing list wholesale. An empty array
+  clears all conditions.
+  """
+  customAttributeConditions: [CustomAttributeConditionInput!]
+  """
+  Opaque filter blob, stored and echoed back but NOT applied when reading the view:
+  creators(presetId:) narrows ONLY by this view's customAttributeConditions and sort. Use
+  customAttributeConditions to actually narrow which creators the view returns. When provided,
+  replaces the existing filter blob wholesale (no element-level merge).
+  """
+  filters: JSON
+  """Display name. When provided, replaces the existing name."""
+  name: String
+  """Whether reporting stats should be surfaced. When provided, replaces the existing flag."""
+  showReportingStats: Boolean
+  """Sort directives. When provided, replaces the existing sort wholesale."""
+  sort: JSON
+}
+
+"""
+Partial-update input for the updateSocialProfileView mutation. Only provided fields are updated;
+omitted fields are left unchanged.
+"""
+input UpdateSocialProfileViewInput {
+  """
+  Custom-attribute conditions. When provided, replaces the existing list wholesale. An empty array
+  clears all conditions.
+  """
+  customAttributeConditions: [CustomAttributeConditionInput!]
+  """
+  Opaque filter blob, stored and echoed back but NOT applied when reading the view:
+  socialProfiles(presetId:) narrows ONLY by this view's customAttributeConditions and sort. Use
+  customAttributeConditions to actually narrow which social profiles the view returns. When
+  provided, replaces the existing filter blob wholesale (no element-level merge).
+  """
+  filters: JSON
+  """Display name. When provided, replaces the existing name."""
+  name: String
+  """Whether reporting stats should be surfaced. When provided, replaces the existing flag."""
+  showReportingStats: Boolean
+  """Sort directives. When provided, replaces the existing sort wholesale."""
+  sort: JSON
+}
+
+"""Input for the updateViewGroup mutation."""
+input UpdateViewGroupInput {
+  """New display name for the view group. Must be unique within the workspace."""
+  name: String!
+}
+
+"""Input for the uploadItemFromUrl mutation."""
+input UploadItemFromUrlInput {
+  """Public URL of the UGC post (Instagram / TikTok / YouTube)."""
+  url: String!
+}
+
+"""Autogenerated return type of AddToCollections."""
+type AddToCollectionsPayload {
+  """The updated item."""
+  item: Item
+  """List of errors that occurred."""
+  userErrors: [UserError!]!
+}
+
+"""
+Explanation an AI Filter produced for one custom-attribute value on an item. Pair it to the value by
+key in the item's customAttributes object.
+"""
+type AiFilterReason {
+  """
+  Custom-attribute key this explanation belongs to. Matches a key in customAttributes and the key of
+  a customAttributeSchemas entry.
+  """
+  key: String!
+  """
+  The AI Filter's explanation for the value it assigned. Null when the run recorded no explanation;
+  an empty string is returned verbatim when the model produced one.
+  """
+  reason: String
+}
+
+"""A campaign in Archive that groups creators and their content."""
+type Campaign {
+  """When the campaign was created (UTC)."""
+  createdAt: DateTime!
+  """Unique identifier for the campaign in Archive's system."""
+  id: ID!
+  """Campaign name as shown in Archive."""
+  name: String!
+}
+
+"""Paginated list of campaigns."""
+type CampaignConnection {
+  """List of edges with cursors."""
+  edges: [CampaignEdge!]!
+  """List of campaigns."""
+  nodes: [Campaign!]!
+  """Pagination information."""
+  pageInfo: PageInfo!
+  """Total number of items available."""
+  totalCount: Int
+}
+
+"""An edge in the campaign connection."""
+type CampaignEdge {
+  """Cursor for this node."""
+  cursor: String!
+  """The campaign."""
+  node: Campaign!
+}
+
+"""A Collection (saved tag set) for the current workspace."""
+type Collection {
+  """When the Collection was created."""
+  createdAt: DateTimeWithZone!
+  """
+  Group this Collection belongs to, or null when ungrouped. Populated by moveCollectionToGroup.
+  Always null for workspaces whose Collections use the older storage.
+  """
+  group: ViewGroup
+  """
+  Unique identifier of the Collection in this workspace. Pass it to addItemToCollections /
+  removeItemFromCollections and to collection(id:).
+  """
+  id: ID!
+  """Number of items in this workspace tagged with the Collection."""
+  itemCount: Int!
+  """Display name of the Collection."""
+  name: String!
+  """When the Collection was last updated."""
+  updatedAt: DateTimeWithZone!
+}
+
+"""
+A brand tracked in Competitor Insights for the current workspace, plus the workspace's own brand as
+a flagged entry (isOwnBrand: true).
+"""
+type CompetitorBrand {
+  """Estimated earned media value (USD) over the window. Null when unavailable or no data."""
+  earnedMediaValue: Float
+  """
+  Total engagements (likes + comments + shares, …) over the window. Null when unavailable or no
+  data.
+  """
+  engagementsTotal: Float
+  """
+  Unique identifier for the brand in Archive's system. For the workspace's own-brand entry this is a
+  stable, workspace-scoped id (the same across requests).
+  """
+  id: ID!
+  """Merged view/play impressions over the window. Null when unavailable or no data."""
+  impressions: Float
+  """Distinct influencers counted over the window. Null when unavailable or no data."""
+  influencersCount: Int
+  """
+  True for the workspace's own-brand entry, false for tracked competitor brands. Use this to compute
+  self-vs-competitor Share of Voice.
+  """
+  isOwnBrand: Boolean!
+  """Brand name. The workspace's own-brand entry is named "You"."""
+  name: String!
+  """
+  For the own-brand entry only (null for competitors): AVAILABLE when metrics were computed (null
+  metric fields then mean no data in the window, distinct from zero), UNAVAILABLE when they could
+  not be computed. The accompanying error code says whether to retry.
+  """
+  ownMetricsStatus: CompetitorBrandOwnMetricsStatus
+  """Number of posts counted over the window. Null when unavailable or no data."""
+  postsCount: Int
+  """Summed follower reach over the window. Null when unavailable or no data."""
+  reach: Float
+}
+
+"""Paginated list of competitor brands."""
+type CompetitorBrandConnection {
+  """List of edges with cursors."""
+  edges: [CompetitorBrandEdge!]!
+  """List of competitor brands."""
+  nodes: [CompetitorBrand!]!
+  """Pagination information."""
+  pageInfo: PageInfo!
+  """Total number of items available."""
+  totalCount: Int
+}
+
+"""An edge in the competitor brand connection."""
+type CompetitorBrandEdge {
+  """Cursor for this node."""
+  cursor: String!
+  """The competitor brand."""
+  node: CompetitorBrand!
+}
+
+"""
+A single post belonging to a Competitor Insights brand. Posts for a given month become available on
+day 9 of the following month.
+"""
+type CompetitorBrandItem {
+  """
+  Stable Archive permalink for this post. Unlike originalUrl, this URL keeps resolving after the
+  source post is deleted on the originating platform. Mirrors Item.archivePublicUrl for parity.
+  """
+  archivePublicUrl: String
+  """Caption text of the post, when available. Mirrors Item.caption for parity."""
+  caption: String
+  """
+  Most recent engagement metrics (likes, comments, views, shares, EMV) and virality score for this
+  post.
+  """
+  currentEngagement: Engagement
+  """Platform-side identifier (Instagram media id, TikTok video id, etc.)."""
+  externalId: ID!
+  """List of hashtags used in the post. Mirrors Item.hashtags for parity."""
+  hashtags: [String!]
+  """Unique identifier of the underlying media item in Archive's system."""
+  id: ID!
+  """List of @-mentions used in the post. Mirrors Item.mentions for parity."""
+  mentions: [String!]
+  """
+  Direct URL to the post on the source platform. Null for content types without a public URL (e.g.
+  Instagram Stories).
+  """
+  originalUrl: String
+  """Platform the post was published on."""
+  provider: Provider!
+  """Social media profile that posted this content."""
+  socialProfile: SocialProfile!
+  """When the post was published on the source platform."""
+  takenAt: DateTime!
+  """
+  Text transcriptions and subtitles generated for video content in this post. Mirrors
+  Item.transcriptions for parity.
+  """
+  transcriptions: [Transcription!]!
+  """Type of post (post / reel / story / short). Mirrors Item.type for parity."""
+  type: ItemType!
+}
+
+"""Paginated list of competitor brand items."""
+type CompetitorBrandItemConnection {
+  """List of edges with cursors."""
+  edges: [CompetitorBrandItemEdge!]!
+  """List of competitor brand items."""
+  nodes: [CompetitorBrandItem!]!
+  """Pagination information."""
+  pageInfo: PageInfo!
+  """Total number of items available."""
+  totalCount: Int
+}
+
+"""An edge in the competitor brand item connection."""
+type CompetitorBrandItemEdge {
+  """Cursor for this node."""
+  cursor: String!
+  """The competitor brand item."""
+  node: CompetitorBrandItem!
+}
+
+"""
+A saved content (media deck) view for the current workspace. Use the returned id with
+items(presetId:) to fetch its items.
+"""
+type ContentView {
+  """When the view was created."""
+  createdAt: DateTimeWithZone!
+  """Custom-attribute conditions narrowing the filter set."""
+  customAttributeConditions: JSON!
+  """Opaque filter blob defining which items belong to the view."""
+  filters: JSON!
+  """
+  Group this view belongs to, or null when the view is ungrouped. Populated by
+  moveContentViewToGroup.
+  """
+  group: ViewGroup
+  """Unique identifier (FilterPreset UUID). Use this with items(presetId:)."""
+  id: ID!
+  """Display name of the view."""
+  name: String!
+  """Whether reporting stats are surfaced in the UI for this view."""
+  showReportingStats: Boolean!
+  """Sort directives applied when listing items via this view."""
+  sort: JSON!
+  """When the view was last updated."""
+  updatedAt: DateTimeWithZone!
+}
+
+"""Autogenerated return type of CreateCollection."""
+type CreateCollectionPayload {
+  """The newly created Collection. Null on validation failure."""
+  collection: Collection
+  """List of user-facing validation errors. Empty on success."""
+  userErrors: [UserError!]!
+}
+
+"""Autogenerated return type of CreateContentView."""
+type CreateContentViewPayload {
+  """The newly created content view. Null on validation failure."""
+  contentView: ContentView
+  """List of user-facing validation errors. Empty on success."""
+  userErrors: [UserError!]!
+}
+
+"""Autogenerated return type of CreateCreatorView."""
+type CreateCreatorViewPayload {
+  """The newly created creator view. Null on validation failure."""
+  creatorView: CreatorView
+  """List of user-facing validation errors. Empty on success."""
+  userErrors: [UserError!]!
+}
+
+"""Autogenerated return type of CreateSocialProfileView."""
+type CreateSocialProfileViewPayload {
+  """The newly created social profile view. Null on validation failure."""
+  socialProfileView: SocialProfileView
+  """List of user-facing validation errors. Empty on success."""
+  userErrors: [UserError!]!
+}
+
+"""Autogenerated return type of CreateViewGroup."""
+type CreateViewGroupPayload {
+  """List of user-facing validation errors. Empty on success."""
+  userErrors: [UserError!]!
+  """The newly created view group. Null on validation failure."""
+  viewGroup: ViewGroup
+}
+
+"""A creator (influencer) whose content is tracked in Archive."""
+type Creator {
+  """Custom metadata fields associated with the creator (for example CRM attributes)."""
+  customAttributes: JSON!
+  """Unique identifier for the creator in Archive's system."""
+  id: ID!
+  """
+  Social media profiles linked to this creator across all platforms (for example Instagram, TikTok,
+  YouTube). Returns an empty list if no profiles are linked.
+  """
+  socialProfiles: [SocialProfile!]!
+}
+
+"""Paginated list of creators."""
+type CreatorConnection {
+  """List of edges with cursors."""
+  edges: [CreatorEdge!]!
+  """List of creators."""
+  nodes: [Creator!]!
+  """Pagination information."""
+  pageInfo: PageInfo!
+  """Total number of items available."""
+  totalCount: Int
+}
+
+"""An edge in the creator connection."""
+type CreatorEdge {
+  """Cursor for this node."""
+  cursor: String!
+  """The creator."""
+  node: Creator!
+}
+
+"""
+A saved workspace Creator View for the current workspace. Use the returned id with
+creators(presetId:) to fetch this view's creator contents.
+"""
+type CreatorView {
+  """When the view was created."""
+  createdAt: DateTimeWithZone!
+  """Custom-attribute conditions narrowing the filter set."""
+  customAttributeConditions: JSON!
+  """
+  Opaque filter blob, stored and echoed back but NOT applied when reading the view:
+  creators(presetId:) narrows ONLY by this view's customAttributeConditions and sort. Use
+  customAttributeConditions to filter which creators the view returns.
+  """
+  filters: JSON!
+  """
+  Group this view belongs to, or null when the view is ungrouped. Populated by
+  moveCreatorViewToGroup.
+  """
+  group: ViewGroup
+  """
+  Unique identifier of this saved view. Use the returned id with creators(presetId:) to fetch the
+  view's creators.
+  """
+  id: ID!
+  """Display name of the view."""
+  name: String!
+  """Whether reporting stats are surfaced in the UI for this view."""
+  showReportingStats: Boolean!
+  """Sort directives applied when listing creators via this view."""
+  sort: JSON!
+  """When the view was last updated."""
+  updatedAt: DateTimeWithZone!
+}
+
+"""A selectable option for custom attributes with predefined choices."""
+type CustomAttributeOption {
+  """Unique identifier. Match this against values in customAttributes."""
+  id: ID!
+  """Human-readable display name."""
+  name: String!
+}
+
+"""Definition of a custom attribute field. Use options (when present) to map IDs to display names."""
+type CustomAttributeSchema {
+  """
+  True when this attribute's value is produced by an AI Filter. For AI-generated attributes, an
+  item's aiFilterReasons entry with the matching key carries the model's explanation for the value.
+  """
+  aiGenerated: Boolean!
+  """Key used in the customAttributes object."""
+  key: String!
+  """Human-readable display name."""
+  name: String!
+  """
+  Available options for select-type attributes. When present, customAttributes values are option IDs
+  that map to these options. When null, values are stored directly (text, numbers, dates, etc.).
+  """
+  options: [CustomAttributeOption!]
+  """Custom attribute field type."""
+  type: CustomAttributeType!
+}
+
+"""Autogenerated return type of DeleteCollection."""
+type DeleteCollectionPayload {
+  """The id of the deleted Collection. Null when the Collection did not exist."""
+  deletedCollectionId: ID
+  """List of user-facing errors. Populated only when deletion failed."""
+  userErrors: [UserError!]!
+}
+
+"""Autogenerated return type of DeleteContentView."""
+type DeleteContentViewPayload {
+  """ID of the deleted content view. Null when no such view exists in the workspace."""
+  deletedContentViewId: ID
+  """List of user-facing errors. Populated only when deletion failed."""
+  userErrors: [UserError!]!
+}
+
+"""Autogenerated return type of DeleteCreatorView."""
+type DeleteCreatorViewPayload {
+  """ID of the deleted creator view. Null when no such view exists in the workspace."""
+  deletedCreatorViewId: ID
+  """List of user-facing errors. Populated only when deletion failed."""
+  userErrors: [UserError!]!
+}
+
+"""Autogenerated return type of DeleteSocialProfileView."""
+type DeleteSocialProfileViewPayload {
+  """ID of the deleted social profile view. Null when no such view exists in the workspace."""
+  deletedSocialProfileViewId: ID
+  """List of user-facing errors. Populated only when deletion failed."""
+  userErrors: [UserError!]!
+}
+
+"""Autogenerated return type of DeleteViewGroup."""
+type DeleteViewGroupPayload {
+  """The id of the deleted view group. Null when the group did not exist."""
+  deletedViewGroupId: ID
+  """
+  FilterPreset UUIDs whose group membership row was deleted as a side effect. Clients should
+  invalidate any cached ContentView / SocialProfileView rows in this list. Empty on not-found or
+  when the group had no member views.
+  """
+  movedViewIds: [ID!]!
+  """List of user-facing errors. Populated only when deletion failed."""
+  userErrors: [UserError!]!
+}
+
+"""Snapshot of engagement metrics for a single piece of content."""
+type Engagement {
+  """Total number of comments."""
+  comments: BigInt
+  """Estimated earned media value (EMV) in cents."""
+  earnedMediaValue: BigInt
+  """Number of views, plays, or estimated impressions."""
+  impressions: BigInt
+  """Total number of likes."""
+  likes: BigInt
+  """Bucketed virality score."""
+  linearViralityScore: ViralityScore!
+  """Number of shares."""
+  shares: BigInt
+  """Number of views."""
+  views: BigInt
+}
+
+"""Paginated list of engagement history entries."""
+type EngagementHistoryConnection {
+  """List of edges with cursors."""
+  edges: [EngagementHistoryEntryEdge!]!
+  """List of engagement history entries."""
+  nodes: [EngagementHistoryEntry!]!
+  """Pagination information."""
+  pageInfo: PageInfo!
+  """Total number of items available."""
+  totalCount: Int
+}
+
+"""A single historical snapshot of engagement metrics for a piece of content."""
+type EngagementHistoryEntry {
+  """Timestamp when the engagement metrics were captured (UTC)."""
+  at: DateTime!
+  """Total number of comments."""
+  comments: BigInt
+  """Estimated earned media value (EMV) in cents."""
+  earnedMediaValue: BigInt
+  """Number of followers at the time of capture."""
+  followers: BigInt
+  """Number of views, plays, or estimated impressions."""
+  impressions: BigInt
+  """Total number of likes."""
+  likes: BigInt
+  """Bucketed virality score based on engagement relative to follower count."""
+  linearViralityScore: ViralityScore!
+  """Number of shares."""
+  shares: BigInt
+  """Number of views."""
+  views: BigInt
+}
+
+"""An edge in the engagement history entry connection."""
+type EngagementHistoryEntryEdge {
+  """Cursor for this node."""
+  cursor: String!
+  """The engagement history entry."""
+  node: EngagementHistoryEntry!
+}
+
+"""A saved filter preset configuration"""
+type FilterPreset {
+  """Type of filter preset"""
+  accessor: FilterPresetAccessor!
+  """Unique identifier"""
+  id: ID!
+  """Display name of the preset"""
+  name: String!
+}
+
+"""Image media content (for example single images or carousel frames)."""
+type Image {
+  """True if the media content has been removed from the source platform."""
+  deleted: Boolean!
+  """Direct URL to the underlying media file when Archive can serve it."""
+  fileUrl: String
+  """Height of the media content in pixels, when known."""
+  height: Int
+  """Unique identifier for the media content in Archive's system."""
+  id: ID!
+  """
+  Identifier of the parent media item. Use this to group related contents (e.g., carousel frames)
+  that belong to the same post.
+  """
+  mediaItemId: ID!
+  """URL of a preview thumbnail image for this media content, if available."""
+  thumbnailUrl: String
+  """Whether this media content is an IMAGE or a VIDEO."""
+  type: MediaContentType!
+  """Width of the media content in pixels, when known."""
+  width: Int
+}
+
+"""
+A connected social account for the workspace. Each entry represents one row in Archive's
+integrations table — distinct from Workspace.mentions, which lists tracked @-mention terms. Multiple
+integrations may share the same handle (e.g. two TikTok accounts under one tag) and each gets a
+distinct id.
+"""
+type Integration {
+  """Timestamp when the integration was first established (ISO 8601 UTC)."""
+  connectedAt: DateTimeWithZone!
+  """
+  Public-facing account handle for this integration (for example "support_testing"). Sourced from
+  the associated mention tag.
+  """
+  handle: String!
+  """
+  Stable unique identifier for this integration (UUID). Distinguishes multiple integrations that
+  share the same handle.
+  """
+  id: ID!
+  """Platform on which this account is connected (for example INSTAGRAM, TIKTOK, YOUTUBE, or INTERNAL)."""
+  provider: Provider!
+  """
+  Lifecycle state of the integration. CONNECTED = active and verified; DISCONNECTED = the account
+  was removed or the integration failed; PENDING = setup in progress.
+  """
+  status: IntegrationStatus!
+}
+
+"""A single piece of social content archived in Archive."""
+type Item {
+  """
+  Explanations the AI Filters produced for this item's AI-generated custom attributes, one entry per
+  AI-generated attribute the item has. Pair each entry to its value by key in customAttributes;
+  customAttributeSchemas marks which keys are AI-generated via aiGenerated. Empty when the item has
+  none.
+  """
+  aiFilterReasons: [AiFilterReason!]!
+  """
+  Stable Archive permalink for this item. Unlike originalUrl, this URL keeps resolving after the
+  source post is deleted or the creator account goes private.
+  """
+  archivePublicUrl: String
+  """Caption text of the content, when available."""
+  caption: String
+  """Creator who posted this content."""
+  creator: Creator!
+  """
+  Most recent engagement metrics (likes, comments, views, shares, EMV) and virality score for this
+  item.
+  """
+  currentEngagement: Engagement
+  """Custom metadata fields associated with the item."""
+  customAttributes: JSON!
+  """Platform-specific identifier for the content (e.g., Instagram post ID, TikTok video ID)."""
+  externalId: ID!
+  """List of hashtags used in the item’s caption or metadata."""
+  hashtags: [String!]
+  """Unique identifier for the item in Archive's system."""
+  id: ID!
+  """Location associated with the content, if present."""
+  location: Location
+  """
+  Identifier of the parent media item. Use this to group related contents (e.g., carousel frames)
+  that belong to the same post.
+  """
+  mediaItemId: ID!
+  """List of user mentions used in the item’s caption or metadata."""
+  mentions: [String!]
+  """
+  Direct URL to the original content on the social platform. Returns null for content types without
+  public URLs (e.g., Instagram Stories).
+  """
+  originalUrl: String
+  """Platform where the content exists (for example INSTAGRAM, TIKTOK, YOUTUBE, or INTERNAL)."""
+  provider: Provider!
+  """Social media profile on which this content was posted."""
+  socialProfile: SocialProfile!
+  """Timestamp when the content was originally published on the social platform (UTC)."""
+  takenAt: DateTime!
+  """Text transcriptions and subtitles generated for video content within this item."""
+  transcriptions: [Transcription!]!
+  """Type of archived content (for example POST, REEL, STORY or SHORT), depending on the platform."""
+  type: ItemType!
+}
+
+"""Paginated list of items."""
+type ItemConnection {
+  """List of edges with cursors."""
+  edges: [ItemEdge!]!
+  """List of items."""
+  nodes: [Item!]!
+  """Pagination information."""
+  pageInfo: PageInfo!
+  """Total number of items available."""
+  totalCount: Int
+}
+
+"""An edge in the item connection."""
+type ItemEdge {
+  """Cursor for this node."""
+  cursor: String!
+  """The item."""
+  node: Item!
+}
+
+"""A tracked keyword phrase used for YouTube (and other provider) content discovery in the workspace."""
+type Keyword {
+  """Unique identifier for the keyword in Archive's system."""
+  id: ID!
+  """
+  The exact phrase being tracked (for example "noodles worth loving"). Named name for consistency
+  with Tag.name; backed by the keywords.value column.
+  """
+  name: String!
+  """Platform on which this keyword is tracked (currently YOUTUBE; reserved for future providers)."""
+  provider: Provider!
+}
+
+"""Structured location information attached to content or profiles."""
+type Location {
+  """City associated with the location."""
+  city: String
+  """Country associated with the location."""
+  country: String
+  """Human-readable formatted address."""
+  formatted: String
+  """Full name of the location."""
+  name: String
+  """State, region, or province associated with the location."""
+  state: String
+}
+
+"""Autogenerated return type of MoveCollectionToGroup."""
+type MoveCollectionToGroupPayload {
+  """
+  The moved Collection, with the populated group field. Null when the Collection was not found or
+  the move failed.
+  """
+  collection: Collection
+  """List of user-facing errors. Empty on success."""
+  userErrors: [UserError!]!
+}
+
+"""Autogenerated return type of MoveContentViewToGroup."""
+type MoveContentViewToGroupPayload {
+  """
+  The moved Content View, with the populated group field. Null when the view was not found or the
+  move failed.
+  """
+  contentView: ContentView
+  """List of user-facing errors. Empty on success."""
+  userErrors: [UserError!]!
+}
+
+"""Autogenerated return type of MoveCreatorViewToGroup."""
+type MoveCreatorViewToGroupPayload {
+  """
+  The moved Creator View, with the populated group field. Null when the view was not found or the
+  move failed.
+  """
+  creatorView: CreatorView
+  """List of user-facing errors. Empty on success."""
+  userErrors: [UserError!]!
+}
+
+"""Autogenerated return type of MoveSocialProfileViewToGroup."""
+type MoveSocialProfileViewToGroupPayload {
+  """
+  The moved Social Profile View, with the populated group field. Null when the view was not found or
+  the move failed.
+  """
+  socialProfileView: SocialProfileView
+  """List of user-facing errors. Empty on success."""
+  userErrors: [UserError!]!
+}
+
+"""Represents an asynchronous operation with its current status and progress."""
+type Operation {
+  """Timestamp when the operation finished processing. Null if still in progress."""
+  completedAt: DateTimeWithZone
+  """Timestamp when the operation was created."""
+  createdAt: DateTimeWithZone!
+  """IDs of items that failed during processing."""
+  failedItemIds: [ID!]!
+  """Unique identifier for the operation."""
+  id: ID!
+  """The type of operation being performed (e.g., refetch_engagement)."""
+  operationType: String!
+  """IDs of items that have not yet been processed."""
+  pendingItemIds: [ID!]!
+  """Number of items that have been processed so far."""
+  processed: Int!
+  """Current processing status of the operation."""
+  status: OperationStatus!
+  """IDs of items that completed successfully."""
+  succeededItemIds: [ID!]!
+  """Total number of items to process in this operation."""
+  total: Int!
+}
+
+"""Paginated list of operation summaries."""
+type OperationConnection {
+  """List of edges with cursors."""
+  edges: [OperationSummaryEdge!]!
+  """List of operation summaries."""
+  nodes: [OperationSummary!]!
+  """Pagination information."""
+  pageInfo: PageInfo!
+  """Total number of items available."""
+  totalCount: Int
+}
+
+"""Lightweight summary of an operation. Use the operation(id:) query for full details."""
+type OperationSummary {
+  """When the operation was created."""
+  createdAt: DateTimeWithZone!
+  """Unique identifier of the operation."""
+  id: ID!
+  """The type of operation (e.g. refetch_engagement, update_custom_attributes)."""
+  operationType: String!
+  """Current processing status of the operation."""
+  status: OperationStatus!
+  """Total number of items in the operation."""
+  total: Int!
+}
+
+"""An edge in the operation summary connection."""
+type OperationSummaryEdge {
+  """Cursor for this node."""
+  cursor: String!
+  """The operation summary."""
+  node: OperationSummary!
+}
+
+"""Information about pagination in a connection."""
+type PageInfo {
+  """Cursor for the last node in this page."""
+  endCursor: String
+  """Whether there are more results after this page."""
+  hasNextPage: Boolean!
+  """Whether there are results before this page."""
+  hasPreviousPage: Boolean!
+  """Cursor for the first node in this page."""
+  startCursor: String
+}
+
+"""Autogenerated return type of RefetchBulk."""
+type RefetchBulkPayload {
+  """
+  Unique identifier of the background operation created to process the refresh. Null when no items
+  were processable (all filtered or deduplicated). Use this ID to track operation progress.
+  """
+  operationId: ID
+  """
+  Number of items accepted and queued for engagement refresh. Credits are charged only for this
+  count.
+  """
+  processedCount: Int
+  """
+  IDs of items skipped because they are already enqueued in another active refresh operation for
+  this workspace. Instagram stories are silently excluded and not listed here.
+  """
+  skippedItemIds: [ID!]
+  """Errors that prevented the mutation from executing. Common error: insufficient credits."""
+  userErrors: [UserError!]!
+}
+
+"""Autogenerated return type of RemoveFromCollections."""
+type RemoveFromCollectionsPayload {
+  """The updated item."""
+  item: Item
+  """List of errors that occurred."""
+  userErrors: [UserError!]!
+}
+
+"""Autogenerated return type of ReorderViewsInGroup."""
+type ReorderViewsInGroupPayload {
+  """List of user-facing errors. Empty on success."""
+  userErrors: [UserError!]!
+  """
+  The reordered ViewGroup. contentViews, socialProfileViews, and creatorViews reflect the new
+  ordering in a single round-trip. Null when the group was not found or the reorder failed.
+  """
+  viewGroup: ViewGroup
+}
+
+"""A social media profile connected to Archive (for example Instagram, TikTok, or YouTube)."""
+type SocialProfile {
+  """Username or handle of the social media account."""
+  accountName: String!
+  """URL of the account's profile picture, if available."""
+  avatar: String
+  """
+  Creator associated with this social profile in the current workspace. Use this to get the unified
+  creator ID for deduplicating creators across platforms. Returns null if the profile has no creator
+  record in this workspace.
+  """
+  creator: Creator
+  """Email address associated with the account, if available."""
+  email: String
+  """Number of followers on the social media account (when available)."""
+  followers: Int!
+  """Number of accounts this profile is following (when available)."""
+  following: Int!
+  """Display name or full name shown on the social media profile."""
+  fullName: String
+  """Unique identifier of the social profile in Archive's system."""
+  id: ID!
+  """Direct URL to the profile on the social platform (e.g., https://instagram.com/account_name)."""
+  originalUrl: String!
+  """Phone numbers associated with the account, when present."""
+  phoneNumbers: [String!]
+  """Whether the social media account is currently set to private."""
+  private: Boolean!
+  """Whether the account is marked as a professional or business account on the platform."""
+  proAccount: Boolean!
+  """Platform where the social profile exists (for example INSTAGRAM, TIKTOK, YOUTUBE, or INTERNAL)."""
+  provider: Provider!
+  """Whether the account has a verified/badge status on the platform."""
+  verified: Boolean!
+}
+
+"""Paginated list of social profiles."""
+type SocialProfileConnection {
+  """List of edges with cursors."""
+  edges: [SocialProfileEdge!]!
+  """List of social profiles."""
+  nodes: [SocialProfile!]!
+  """Pagination information."""
+  pageInfo: PageInfo!
+  """Total number of items available."""
+  totalCount: Int
+}
+
+"""An edge in the social profile connection."""
+type SocialProfileEdge {
+  """Cursor for this node."""
+  cursor: String!
+  """The social profile."""
+  node: SocialProfile!
+}
+
+"""
+A saved Social Profile view for the current workspace. Use the returned id with
+socialProfiles(presetId:) to fetch this view's social profile contents.
+"""
+type SocialProfileView {
+  """When the view was created."""
+  createdAt: DateTimeWithZone!
+  """Custom-attribute conditions narrowing the filter set."""
+  customAttributeConditions: JSON!
+  """
+  Opaque filter blob, stored and echoed back but NOT applied when reading the view:
+  socialProfiles(presetId:) narrows ONLY by this view's customAttributeConditions and sort. Use
+  customAttributeConditions to filter which social profiles the view returns.
+  """
+  filters: JSON!
+  """
+  Group this view belongs to, or null when the view is ungrouped. Populated by
+  moveSocialProfileViewToGroup.
+  """
+  group: ViewGroup
+  """
+  Unique identifier of this saved view. Use the returned id with socialProfiles(presetId:) to fetch
+  the view's social profiles.
+  """
+  id: ID!
+  """Display name of the view."""
+  name: String!
+  """Whether reporting stats are surfaced in the UI for this view."""
+  showReportingStats: Boolean!
+  """Sort directives applied when listing social profiles via this view."""
+  sort: JSON!
+  """When the view was last updated."""
+  updatedAt: DateTimeWithZone!
+}
+
+"""A hashtag or mention tag associated with social content."""
+type Tag {
+  """Unique identifier for the tag in Archive's system."""
+  id: ID!
+  """The text of the tag."""
+  name: String!
+  """Platform where this tag was observed (for example INSTAGRAM, TIKTOK, YOUTUBE, or INTERNAL)."""
+  provider: Provider!
+  """Whether this tag is a HASHTAG or a MENTION."""
+  type: TagType!
+}
+
+"""Text transcription generated for a piece of media content."""
+type Transcription {
+  """Identifier of the media content this transcription belongs to."""
+  mediaContentId: ID!
+  """Plain text transcription of the spoken content."""
+  transcript: String
+}
+
+"""Autogenerated return type of UpdateCollection."""
+type UpdateCollectionPayload {
+  """The updated Collection. Null on validation failure or when not found."""
+  collection: Collection
+  """List of user-facing validation errors. Empty on success."""
+  userErrors: [UserError!]!
+}
+
+"""Autogenerated return type of UpdateContentView."""
+type UpdateContentViewPayload {
+  """The updated content view. Null on validation failure or when the view was not found."""
+  contentView: ContentView
+  """List of user-facing validation errors. Empty on success."""
+  userErrors: [UserError!]!
+}
+
+"""Autogenerated return type of UpdateCreatorView."""
+type UpdateCreatorViewPayload {
+  """The updated creator view. Null on validation failure or when the view was not found."""
+  creatorView: CreatorView
+  """List of user-facing validation errors. Empty on success."""
+  userErrors: [UserError!]!
+}
+
+"""Autogenerated return type of UpdateSocialProfileView."""
+type UpdateSocialProfileViewPayload {
+  """The updated social profile view. Null on validation failure or when the view was not found."""
+  socialProfileView: SocialProfileView
+  """List of user-facing validation errors. Empty on success."""
+  userErrors: [UserError!]!
+}
+
+"""Autogenerated return type of UpdateViewGroup."""
+type UpdateViewGroupPayload {
+  """List of user-facing validation errors. Empty on success."""
+  userErrors: [UserError!]!
+  """The renamed view group. Null on not-found or validation failure."""
+  viewGroup: ViewGroup
+}
+
+"""Autogenerated return type of UploadItemFromUrl."""
+type UploadItemFromUrlPayload {
+  """
+  True when the URL was accepted (audit rows created and SocialBridge enqueued). False on validation
+  failure.
+  """
+  success: Boolean!
+  """List of user-facing validation errors. Empty on success."""
+  userErrors: [UserError!]!
+}
+
+"""Result of looking up a single input string against the current workspace."""
+type UrlLookupResult {
+  """The matching shop item UUID, or null if no match was found."""
+  itemId: ID
+  """Outcome of the lookup: FOUND, NOT_FOUND, or INVALID_URL."""
+  status: UrlLookupStatus!
+  """The original input string that was looked up."""
+  url: String!
+}
+
+"""Represents an error in the input of a mutation."""
+type UserError {
+  """Path to the input field that caused the error."""
+  field: [String!]
+  """The error message."""
+  message: String!
+}
+
+"""Video media content associated with an item."""
+type Video {
+  """True if the media content has been removed from the source platform."""
+  deleted: Boolean!
+  """Direct URL to the underlying media file when Archive can serve it."""
+  fileUrl: String
+  """Height of the media content in pixels, when known."""
+  height: Int
+  """Unique identifier for the media content in Archive's system."""
+  id: ID!
+  """
+  Identifier of the parent media item. Use this to group related contents (e.g., carousel frames)
+  that belong to the same post.
+  """
+  mediaItemId: ID!
+  """URL of a preview thumbnail image for this media content, if available."""
+  thumbnailUrl: String
+  """Whether this media content is an IMAGE or a VIDEO."""
+  type: MediaContentType!
+  """Duration of the video in seconds, when available."""
+  videoDuration: Int
+  """Width of the media content in pixels, when known."""
+  width: Int
+}
+
+"""
+A user-created group of saved views (Content Views, Social Profile Views, Creator Views,
+Collections) for the current workspace.
+"""
+type ViewGroup {
+  """Collections that belong to this group, ordered by their position within the group."""
+  collections: [Collection!]!
+  """Content Views that belong to this group, ordered by their position within the group."""
+  contentViews: [ContentView!]!
+  """When the group was created."""
+  createdAt: DateTimeWithZone!
+  """Creator Views that belong to this group, ordered by their position within the group."""
+  creatorViews: [CreatorView!]!
+  """Unique identifier."""
+  id: ID!
+  """Display name of the group."""
+  name: String!
+  """Social Profile Views that belong to this group, ordered by their position within the group."""
+  socialProfileViews: [SocialProfileView!]!
+  """When the group was last updated."""
+  updatedAt: DateTimeWithZone!
+}
+
+"""A workspace represents a single brand or account within Archive."""
+type Workspace {
+  """Hashtags tracked for this workspace."""
+  hashtags: [Tag!]
+  """Unique identifier for the workspace (UUID format)."""
+  id: ID!
+  """
+  Connected social accounts for this workspace. Distinct from mentions — that field lists tracked
+  terms (the @-handles Archive monitors); this field lists connected accounts (one entry per row in
+  the integrations table). Multiple integrations may share the same handle, and each entry surfaces
+  its own status. Includes disconnected and failed integrations so customers can detect broken
+  connections.
+  """
+  integrations: [Integration!]!
+  """
+  Keywords tracked for this workspace (primarily YouTube). Distinct from hashtags and mentions,
+  which surface Instagram/TikTok-style tags.
+  """
+  keywords: [Keyword!]
+  """User mentions tracked for this workspace."""
+  mentions: [Tag!]
+  """Human-readable name of the workspace."""
+  name: String!
+}
+
+"""Paginated list of workspaces."""
+type WorkspaceConnection {
+  """List of edges with cursors."""
+  edges: [WorkspaceEdge!]!
+  """List of workspaces."""
+  nodes: [Workspace!]!
+  """Pagination information."""
+  pageInfo: PageInfo!
+  """Total number of items available."""
+  totalCount: Int
+}
+
+"""An edge in the workspace connection."""
+type WorkspaceEdge {
+  """Cursor for this node."""
+  cursor: String!
+  """The workspace."""
+  node: Workspace!
+}
+

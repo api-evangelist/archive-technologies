@@ -1,4 +1,4 @@
-generated: '2026-07-18'
+generated: '2026-08-13'
 method: derived
 source: https://api-docs.archive.com + well-known OAuth metadata
 description: >-
@@ -9,7 +9,23 @@ description: >-
 standards:
 - id: graphql
   conforms: true
-  evidence: Single POST GraphQL endpoint at /api/v2 with GraphQL error envelope and cursor connections.
+  evidence: >-
+    Single POST GraphQL endpoint at /api/v2 with GraphQL error envelope and cursor
+    connections. Full schema published at https://app.archive.com/api/v2/docs and captured as
+    SDL at graphql/archive-technologies.graphql (53 operations, 135 types). Introspection is
+    disabled in production, so the schema is discoverable only through the published
+    reference, not at runtime.
+- id: graphql-cursor-connections
+  conforms: true
+  evidence: >-
+    Relay-style Connection/Edge types with nodes, edges, pageInfo (hasNextPage,
+    hasPreviousPage, startCursor, endCursor) and totalCount across items, creators,
+    socialProfiles, campaigns, competitorBrands and engagementHistory.
+- id: graphql-introspection
+  conforms: false
+  evidence: >-
+    __schema / __type are disabled in production; POST {__schema{queryType{name}}} returns
+    HTTP 401. Clients cannot discover the schema at runtime.
 - id: oauth2
   conforms: true
   evidence: MCP server authorized by OAuth 2.0 authorization_code + refresh_token grants (RFC 6749).
@@ -28,12 +44,37 @@ standards:
 - id: cursor-pagination
   conforms: true
   evidence: first/after cursor pagination with pageInfo/endCursor/hasNextPage connection shape.
+- id: ietf-ratelimit-headers
+  conforms: true
+  evidence: >-
+    Every response carries draft-ietf-httpapi-ratelimit-headers style `ratelimit-policy`
+    ("<plan>";q=<burst>;w=<window>) and `ratelimit` ("<plan>";r=<remaining>;t=<reset>), plus
+    Retry-After on 429.
 - id: rfc9457-problem-details
   conforms: false
   evidence: Uses GraphQL error envelopes, not application/problem+json.
 - id: mcp
   conforms: true
-  evidence: Hosted MCP server at app.archive.com/api/v2/mcp with OAuth protected-resource discovery.
+  evidence: >-
+    Hosted remote MCP server at app.archive.com/api/v2/mcp with OAuth protected-resource
+    discovery, dynamic client registration, and a provider-published catalog of 53 tools
+    (29 read / 24 write) kept in sync with the live server.
+- id: oauth2-dynamic-client-registration
+  conforms: true
+  evidence: >-
+    registration_endpoint https://app.archive.com/oauth/register (RFC 7591); Archive documents
+    that connector authors never supply a client id or secret.
+- id: a2a-agent-card
+  conforms: false
+  evidence: >-
+    /.well-known/agent-card.json and /.well-known/agent.json return 404 on app.archive.com,
+    archive.com and api-docs.archive.com (probed 2026-08-13).
+- id: asyncapi
+  conforms: false
+  evidence: >-
+    No event, streaming or webhook surface exists today. Outbound webhooks (item.captured,
+    item.engagement_updated, HMAC-signed, at-least-once) are announced under "Coming soon" on
+    the docs Roadmap but are not shipped.
 - id: rfc9116-security-txt
   conforms: false
   evidence: No /.well-known/security.txt present (404).

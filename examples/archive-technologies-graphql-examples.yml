@@ -1,0 +1,233 @@
+generated: '2026-08-13'
+method: searched
+source: https://api-docs.archive.com/guides/workflows
+sources:
+- https://api-docs.archive.com/guides/workflows
+- https://api-docs.archive.com/guides/best-practices
+- https://api-docs.archive.com/getting-started
+description: >-
+  Request examples for the Archive GraphQL API, transcribed verbatim from Archive's own
+  published guides (Common Workflows, Best Practices, Getting Started). Archive publishes no
+  OpenAPI, so these are the provider's canonical code samples for the single POST endpoint at
+  https://app.archive.com/api/v2. Every operation, argument and field used below is present in
+  the published schema reference (graphql/archive-technologies.graphql). Placeholder values
+  ("your-view-id", "item-id-here") are Archive's own; they are not real workspace identifiers.
+endpoint: https://app.archive.com/api/v2
+schema: graphql/archive-technologies.graphql
+headers:
+  Authorization: 'Bearer <your API token, prefix arch_live_>'
+  WORKSPACE-ID: '<workspace uuid>'
+  Content-Type: application/json
+examples:
+- name: Look up items by URL
+  operations: [itemIdsByUrl]
+  source: https://api-docs.archive.com/guides/workflows
+  note: >-
+    Resolve public post URLs (Instagram, TikTok, YouTube) to Archive item ids in one call.
+    Batching here is the documented alternative to per-URL fan-out.
+  query: |
+    query LookupByUrl {
+      itemIdsByUrl(urls: [
+        "https://instagram.com/p/ABC123",
+        "https://instagram.com/reel/DEF456",
+        "https://www.tiktok.com/@handle/video/7630795555001683222",
+        "https://www.youtube.com/watch?v=abc123"
+      ]) {
+        url
+        status
+        itemId
+      }
+    }
+
+- name: Page the items in a Content View or Collection
+  operations: [items]
+  source: https://api-docs.archive.com/guides/workflows
+  note: >-
+    presetId accepts a Content View id or a Collection id (both come back from
+    filterPresets / contentViews / collections). Page at first:100 — the documented
+    credit floor makes small pages up to 8x more expensive for the same data.
+  query: |
+    query ViewItems {
+      items(first: 100, presetId: "your-view-id") {
+        nodes {
+          id
+          caption
+          takenAt
+          socialProfile { accountName }
+        }
+        pageInfo { hasNextPage endCursor }
+      }
+    }
+
+- name: Pull the engagement-snapshot timeline for one item
+  operations: [engagementHistory]
+  source: https://api-docs.archive.com/guides/workflows
+  note: >-
+    engagementHistory takes a single itemId, not a batch, so this is the call that fans out.
+    At 6 credits/page it is the cheapest request available — the binding constraint is the
+    flat 5 requests/second ceiling, not credits.
+  query: |
+    query ItemEngagement {
+      engagementHistory(itemId: "item-id-here", first: 50) {
+        nodes {
+          at
+          likes
+          comments
+          shares
+          views
+          impressions
+          earnedMediaValue
+          followers
+          linearViralityScore
+        }
+      }
+    }
+
+- name: Tag an item into a Collection (mutation + userErrors)
+  operations: [addItemToCollections]
+  source: https://api-docs.archive.com/guides/workflows
+  note: >-
+    The canonical mutation shape. autoCreate:true creates the Collection when the name does
+    not exist. userErrors must be read even on HTTP 200 — an empty array is the success signal.
+  query: |
+    mutation AddToCollection {
+      addItemToCollections(
+        itemId: "item-id-here"
+        collectionNames: ["Q1 Report"]
+        autoCreate: true
+      ) {
+        item { id }
+        userErrors { field message }
+      }
+    }
+
+- name: Export creators with their social profiles
+  operations: [creators]
+  source: https://api-docs.archive.com/guides/workflows
+  query: |
+    query ExportCreators {
+      creators(first: 100) {
+        nodes {
+          id
+          customAttributes
+          socialProfiles {
+            accountName
+            provider
+            followers
+          }
+        }
+        pageInfo { hasNextPage endCursor }
+        totalCount
+      }
+    }
+
+- name: Export a Collection's items with full engagement
+  operations: [items]
+  source: https://api-docs.archive.com/guides/workflows
+  query: |
+    query ExportCollectionItems {
+      items(first: 100, presetId: "your-collection-id") {
+        nodes {
+          id
+          caption
+          type
+          provider
+          takenAt
+          originalUrl
+          currentEngagement {
+            likes
+            comments
+            shares
+            views
+            earnedMediaValue
+          }
+          socialProfile { accountName followers }
+        }
+        pageInfo { hasNextPage endCursor }
+      }
+    }
+
+- name: Find a creator's top-performing content
+  operations: [items]
+  source: https://api-docs.archive.com/guides/workflows
+  query: |
+    query TopContent {
+      items(
+        first: 10
+        filter: { accountNames: ["lauramendez"] }
+        sorting: { sortKey: LIKE_COUNT, sortOrder: DESC }
+      ) {
+        nodes {
+          id
+          caption
+          type
+          provider
+          takenAt
+          currentEngagement {
+            likes
+            comments
+            shares
+            views
+            earnedMediaValue
+          }
+        }
+      }
+    }
+
+- name: Find creators by location using custom-attribute conditions
+  operations: [creators]
+  source: https://api-docs.archive.com/guides/workflows
+  note: >-
+    Custom-attribute filtering costs 340 credits per page against 90 for a plain creator
+    search. Archive documents the crossover: keep the filter server-side when it returns
+    fewer than roughly one in four of your creators.
+  query: |
+    query CreatorsByLocation {
+      creators(
+        first: 100
+        customAttributeConditions: [
+          { field: "location", operator: CONTAINS, type: TEXT, value: "United States" }
+        ]
+      ) {
+        nodes {
+          id
+          customAttributes
+          socialProfiles {
+            accountName
+            provider
+            followers
+          }
+        }
+        pageInfo { hasNextPage endCursor }
+        totalCount
+      }
+    }
+
+- name: Fetch media for many items in one call (union inline fragments)
+  operations: [mediaContents]
+  source: https://api-docs.archive.com/guides/best-practices
+  note: MediaContent is a union of Image and Video; up to 100 ids per request.
+  query: |
+    query Thumbnails {
+      # up to 100 ids per request
+      mediaContents(itemIds: ["id1", "id2", "id3"]) {
+        ... on Image { id mediaItemId thumbnailUrl }
+        ... on Video { id mediaItemId thumbnailUrl }
+      }
+    }
+
+- name: Window engagement history server-side with a date filter
+  operations: [engagementHistory]
+  source: https://api-docs.archive.com/guides/best-practices
+  note: >-
+    Dates must be UTC — ending Z, +00:00 or -00:00. A real offset such as -03:00 is
+    rejected (and, per the error reference, arrives as INTERNAL_SERVER_ERROR).
+  query: |
+    query RecentHistory {
+      engagementHistory(
+        itemId: "..."
+        filter: { capturedAt: { from: "2026-04-01T00:00:00Z", to: "2026-05-01T00:00:00Z" } }
+      ) {
+        edges { node { at likes comments views impressions } }
+      }
+    }

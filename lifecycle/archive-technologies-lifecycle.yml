@@ -1,4 +1,4 @@
-generated: '2026-07-18'
+generated: '2026-08-13'
 method: searched
 source: https://api-docs.archive.com
 description: >-
@@ -12,7 +12,25 @@ versioning:
   current: v2
   docs: https://api-docs.archive.com
 status_page: https://archive.instatus.com/
-changelog: https://feedback.archive.com/changelog
+changelog: https://api-docs.archive.com/roadmap
+changelog_artifact: changelog/archive-technologies-changelog.yml
+product_changelog: https://feedback.archive.com/changelog
+roadmap:
+  url: https://api-docs.archive.com/roadmap
+  feedback_portal: https://feedback.archive.com
+  public: true
+  note: >-
+    The docs Roadmap page carries both a dated "Recently shipped" API changelog and a
+    "Coming soon" section, and links a public feature-request board where requested API
+    capabilities carry statuses (In Review / Planned), last checked by Archive 2026-07-28.
+  coming_soon:
+  - outbound webhooks (item.captured, item.engagement_updated; HMAC-signed, idempotency keys,
+    at-least-once delivery) — announced, NOT shipped
+  - preset expansion (filterPresets returning Social Profile and Creator views;
+    socialProfiles(presetId:) applying a view's filters blob on read)
+release_cadence: >-
+  Additive, dated releases on the v2 major — 12 API changes published between 2026-04-23 and
+  2026-07-20, none breaking.
 sla:
   url: https://archive.com/legal/sla
   uptime_target: null
@@ -23,5 +41,18 @@ sla:
 deprecation:
   policy_url: null
   sunset_header: false
-  note: No deprecation policy or RFC 8594 Sunset/Deprecation header support is documented.
+  note: >-
+    No deprecation policy or RFC 8594 Sunset/Deprecation header support is documented. No
+    Deprecation pointer is emitted in apis.yml for this reason. Nothing in the published
+    schema (graphql/archive-technologies.graphql) carries a GraphQL @deprecated marker, and
+    the dated changelog window (2026-04-23 to 2026-07-20) records no breaking change or
+    removal.
 deprecated_operations: []
+known_gaps:
+- >-
+  A Social Profile View's filters blob is stored but ignored on read, so a view narrowing by
+  followersCount or verified returns every profile in the workspace (SocialProfileFilterInput
+  accepts only platform). Archive documents this explicitly; a fix is in "Coming soon".
+- >-
+  A Creator View narrows by customAttributeConditions, not by its filters blob (stored, not
+  applied on read).

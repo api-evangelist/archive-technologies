@@ -1,0 +1,475 @@
+generated: '2026-08-13'
+method: derived
+source: https://api-docs.archive.com/mcp + https://app.archive.com/api/v2/docs
+description: 'Binds every tool on Archive''s hosted MCP server to the GraphQL operation that backs it.
+  Archive publishes no OpenAPI, so the machine-readable core here is the GraphQL schema (graphql/archive-technologies.graphql,
+  reconstructed from the provider''s published SpectaQL reference) rather than a REST spec. The two surfaces
+  are at exact parity: all 53 MCP tools (29 read + 24 write) bind 1:1 to the 53 GraphQL operations (29
+  queries + 24 mutations), and no operation is missing a tool. Archive states the read tools ''mirror
+  the API Reference queries''. Write tools carry the mutation name verbatim; read tools apply a get*/search*
+  prefix. A tool''s real input contract is its backing operation''s arguments in the SDL — the live tools/list
+  inputSchema is OAuth-gated (HTTP 401) and is not asserted here.'
+surfaces:
+  openapi:
+    present: false
+    note: Archive publishes no OpenAPI. Probed /openapi.json, /api/v2/openapi.json on app.archive.com
+      and api-docs.archive.com — all 404.
+  graphql:
+    endpoint: https://app.archive.com/api/v2
+    schema: graphql/archive-technologies.graphql
+    introspection: disabled in production (POST {__schema{...}} returns HTTP 401); schema transcribed
+      from https://app.archive.com/api/v2/docs
+    operations: 53
+  mcp:
+    url: https://app.archive.com/api/v2/mcp
+    manifest: mcp/archive-technologies-mcp.yml
+    tools_list: gated — POST tools/list returns HTTP 401 with an OAuth WWW-Authenticate challenge
+    catalog: https://api-docs.archive.com/mcp (provider-published, kept in sync with the live server)
+    tools: 53
+coverage:
+  tools_named: 53
+  tools_bound: 53
+  mcp_only: 0
+  graphql_operations_total: 53
+  graphql_operations_with_tool: 53
+  rest_operations_total: 0
+  parity: '1:1'
+crosswalk:
+- tool: getWorkspaces
+  category: Workspace & schema
+  access: read
+  graphql:
+  - workspaces
+  graphql_kind: query
+  binding: graphql
+  confidence: high
+- tool: getWorkspace
+  category: Workspace & schema
+  access: read
+  graphql:
+  - workspace
+  graphql_kind: query
+  binding: graphql
+  confidence: high
+- tool: getCustomAttributeSchemas
+  category: Workspace & schema
+  access: read
+  graphql:
+  - customAttributeSchemas
+  graphql_kind: query
+  binding: graphql
+  confidence: high
+- tool: getFilterPresets
+  category: Workspace & schema
+  access: read
+  graphql:
+  - filterPresets
+  graphql_kind: query
+  binding: graphql
+  confidence: high
+- tool: searchItems
+  category: Content & media
+  access: read
+  graphql:
+  - items
+  graphql_kind: query
+  binding: graphql
+  confidence: high
+  note: Tool renamed from the GraphQL field (items); Archive documents the read tools as mirroring the
+    API Reference queries.
+- tool: getMediaContents
+  category: Content & media
+  access: read
+  graphql:
+  - mediaContents
+  graphql_kind: query
+  binding: graphql
+  confidence: high
+- tool: getTranscriptions
+  category: Content & media
+  access: read
+  graphql:
+  - transcriptions
+  graphql_kind: query
+  binding: graphql
+  confidence: high
+- tool: getItemIdsByUrl
+  category: Content & media
+  access: read
+  graphql:
+  - itemIdsByUrl
+  graphql_kind: query
+  binding: graphql
+  confidence: high
+- tool: getEngagementHistory
+  category: Content & media
+  access: read
+  graphql:
+  - engagementHistory
+  graphql_kind: query
+  binding: graphql
+  confidence: high
+- tool: searchCreators
+  category: Creators & social profiles
+  access: read
+  graphql:
+  - creators
+  graphql_kind: query
+  binding: graphql
+  confidence: high
+  note: Tool renamed from the GraphQL field (creators); Archive documents the read tools as mirroring
+    the API Reference queries.
+- tool: getCreator
+  category: Creators & social profiles
+  access: read
+  graphql:
+  - creator
+  graphql_kind: query
+  binding: graphql
+  confidence: high
+- tool: getSocialProfile
+  category: Creators & social profiles
+  access: read
+  graphql:
+  - socialProfile
+  graphql_kind: query
+  binding: graphql
+  confidence: high
+- tool: getSocialProfiles
+  category: Creators & social profiles
+  access: read
+  graphql:
+  - socialProfiles
+  graphql_kind: query
+  binding: graphql
+  confidence: high
+- tool: getContentViews
+  category: Views & collections
+  access: read
+  graphql:
+  - contentViews
+  graphql_kind: query
+  binding: graphql
+  confidence: high
+- tool: getContentView
+  category: Views & collections
+  access: read
+  graphql:
+  - contentView
+  graphql_kind: query
+  binding: graphql
+  confidence: high
+- tool: getSocialProfileViews
+  category: Views & collections
+  access: read
+  graphql:
+  - socialProfileViews
+  graphql_kind: query
+  binding: graphql
+  confidence: high
+- tool: getSocialProfileView
+  category: Views & collections
+  access: read
+  graphql:
+  - socialProfileView
+  graphql_kind: query
+  binding: graphql
+  confidence: high
+- tool: getCreatorViews
+  category: Views & collections
+  access: read
+  graphql:
+  - creatorViews
+  graphql_kind: query
+  binding: graphql
+  confidence: high
+- tool: getCreatorView
+  category: Views & collections
+  access: read
+  graphql:
+  - creatorView
+  graphql_kind: query
+  binding: graphql
+  confidence: high
+- tool: getViewGroups
+  category: Views & collections
+  access: read
+  graphql:
+  - viewGroups
+  graphql_kind: query
+  binding: graphql
+  confidence: high
+- tool: getViewGroup
+  category: Views & collections
+  access: read
+  graphql:
+  - viewGroup
+  graphql_kind: query
+  binding: graphql
+  confidence: high
+- tool: getCollections
+  category: Views & collections
+  access: read
+  graphql:
+  - collections
+  graphql_kind: query
+  binding: graphql
+  confidence: high
+- tool: getCollection
+  category: Views & collections
+  access: read
+  graphql:
+  - collection
+  graphql_kind: query
+  binding: graphql
+  confidence: high
+- tool: getCampaigns
+  category: Campaigns, competitors & operations
+  access: read
+  graphql:
+  - campaigns
+  graphql_kind: query
+  binding: graphql
+  confidence: high
+- tool: getCompetitorBrands
+  category: Campaigns, competitors & operations
+  access: read
+  graphql:
+  - competitorBrands
+  graphql_kind: query
+  binding: graphql
+  confidence: high
+- tool: getCompetitorBrand
+  category: Campaigns, competitors & operations
+  access: read
+  graphql:
+  - competitorBrand
+  graphql_kind: query
+  binding: graphql
+  confidence: high
+- tool: getCompetitorBrandItems
+  category: Campaigns, competitors & operations
+  access: read
+  graphql:
+  - competitorBrandItems
+  graphql_kind: query
+  binding: graphql
+  confidence: high
+- tool: getOperations
+  category: Campaigns, competitors & operations
+  access: read
+  graphql:
+  - operations
+  graphql_kind: query
+  binding: graphql
+  confidence: high
+- tool: getOperation
+  category: Campaigns, competitors & operations
+  access: read
+  graphql:
+  - operation
+  graphql_kind: query
+  binding: graphql
+  confidence: high
+- tool: addItemToCollections
+  category: Collections
+  access: write
+  graphql:
+  - addItemToCollections
+  graphql_kind: mutation
+  binding: graphql
+  confidence: high
+- tool: createCollection
+  category: Collections
+  access: write
+  graphql:
+  - createCollection
+  graphql_kind: mutation
+  binding: graphql
+  confidence: high
+- tool: createContentView
+  category: Views
+  access: write
+  graphql:
+  - createContentView
+  graphql_kind: mutation
+  binding: graphql
+  confidence: high
+- tool: createCreatorView
+  category: Views
+  access: write
+  graphql:
+  - createCreatorView
+  graphql_kind: mutation
+  binding: graphql
+  confidence: high
+- tool: createSocialProfileView
+  category: Views
+  access: write
+  graphql:
+  - createSocialProfileView
+  graphql_kind: mutation
+  binding: graphql
+  confidence: high
+- tool: createViewGroup
+  category: View groups
+  access: write
+  graphql:
+  - createViewGroup
+  graphql_kind: mutation
+  binding: graphql
+  confidence: high
+- tool: deleteCollection
+  category: Collections
+  access: write
+  graphql:
+  - deleteCollection
+  graphql_kind: mutation
+  binding: graphql
+  confidence: high
+- tool: deleteContentView
+  category: Views
+  access: write
+  graphql:
+  - deleteContentView
+  graphql_kind: mutation
+  binding: graphql
+  confidence: high
+- tool: deleteCreatorView
+  category: Views
+  access: write
+  graphql:
+  - deleteCreatorView
+  graphql_kind: mutation
+  binding: graphql
+  confidence: high
+- tool: deleteSocialProfileView
+  category: Views
+  access: write
+  graphql:
+  - deleteSocialProfileView
+  graphql_kind: mutation
+  binding: graphql
+  confidence: high
+- tool: deleteViewGroup
+  category: View groups
+  access: write
+  graphql:
+  - deleteViewGroup
+  graphql_kind: mutation
+  binding: graphql
+  confidence: high
+- tool: moveCollectionToGroup
+  category: View groups
+  access: write
+  graphql:
+  - moveCollectionToGroup
+  graphql_kind: mutation
+  binding: graphql
+  confidence: high
+- tool: moveContentViewToGroup
+  category: View groups
+  access: write
+  graphql:
+  - moveContentViewToGroup
+  graphql_kind: mutation
+  binding: graphql
+  confidence: high
+- tool: moveCreatorViewToGroup
+  category: View groups
+  access: write
+  graphql:
+  - moveCreatorViewToGroup
+  graphql_kind: mutation
+  binding: graphql
+  confidence: high
+- tool: moveSocialProfileViewToGroup
+  category: View groups
+  access: write
+  graphql:
+  - moveSocialProfileViewToGroup
+  graphql_kind: mutation
+  binding: graphql
+  confidence: high
+- tool: refetchEngagementBulk
+  category: Items
+  access: write
+  graphql:
+  - refetchEngagementBulk
+  graphql_kind: mutation
+  binding: graphql
+  confidence: high
+- tool: removeItemFromCollections
+  category: Collections
+  access: write
+  graphql:
+  - removeItemFromCollections
+  graphql_kind: mutation
+  binding: graphql
+  confidence: high
+- tool: reorderViewsInGroup
+  category: View groups
+  access: write
+  graphql:
+  - reorderViewsInGroup
+  graphql_kind: mutation
+  binding: graphql
+  confidence: high
+- tool: updateCollection
+  category: Collections
+  access: write
+  graphql:
+  - updateCollection
+  graphql_kind: mutation
+  binding: graphql
+  confidence: high
+- tool: updateContentView
+  category: Views
+  access: write
+  graphql:
+  - updateContentView
+  graphql_kind: mutation
+  binding: graphql
+  confidence: high
+- tool: updateCreatorView
+  category: Views
+  access: write
+  graphql:
+  - updateCreatorView
+  graphql_kind: mutation
+  binding: graphql
+  confidence: high
+- tool: updateSocialProfileView
+  category: Views
+  access: write
+  graphql:
+  - updateSocialProfileView
+  graphql_kind: mutation
+  binding: graphql
+  confidence: high
+- tool: updateViewGroup
+  category: View groups
+  access: write
+  graphql:
+  - updateViewGroup
+  graphql_kind: mutation
+  binding: graphql
+  confidence: high
+- tool: uploadItemFromUrl
+  category: Items
+  access: write
+  graphql:
+  - uploadItemFromUrl
+  graphql_kind: mutation
+  binding: graphql
+  confidence: high
+mcp_only: []
+rest_only: []
+graphql_only: []
+notes:
+- Both surfaces draw on the same per-workspace credit budget; an MCP tool call costs what its backing
+  query costs.
+- Every write tool is gated behind a per-call approval in the AI client, and deletes remove only the saved
+  view/collection/group.
+- Errors on the MCP surface are returned as text rather than exceptions; mutation domain rejections surface
+  in userErrors.

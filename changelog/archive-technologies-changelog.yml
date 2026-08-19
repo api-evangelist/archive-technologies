@@ -1,19 +1,27 @@
-generated: '2026-07-18'
+generated: '2026-08-13'
 method: searched
-source: https://feedback.archive.com/changelog
-docs: https://feedback.archive.com/changelog
+source: https://api-docs.archive.com/roadmap
+docs: https://api-docs.archive.com/roadmap
+sources:
+- https://api-docs.archive.com/roadmap
+- https://feedback.archive.com/changelog
 description: >-
-  Archive publishes a dated product changelog on a FeatureOS-hosted board at
-  feedback.archive.com/changelog, alongside a feature-request board. Entries are tagged by
-  category (Bug Fixes, New Feature, Improvements) and by product area (e.g. Reporting, Social
-  Listening) with release stages (Alpha, Generally Available). The board renders entries via
-  client-side JavaScript, so individual dated entries were not machine-extractable at capture
-  time; the live board is the source of truth. No structured recent entries are asserted here
-  to avoid fabrication.
-platform: FeatureOS
+  Archive maintains two change surfaces. The API changelog lives on the docs Roadmap page
+  (api-docs.archive.com/roadmap) as a dated "Recently shipped" table — server-rendered and
+  machine-readable, covering the GraphQL and MCP surface, with a matching "Coming soon"
+  section. The product changelog is a separate FeatureOS board at
+  feedback.archive.com/changelog covering the whole app; it renders client-side, so no
+  individual entries are transcribed from it here. The API entries below are verbatim from
+  the docs Roadmap page; the version scheme is not semantic — Archive ships additively on the
+  v2 major and dates each change.
+platform:
+  api_changelog: docs Roadmap page (server-rendered)
+  product_changelog: FeatureOS board
 versioning:
-  scheme: undated product changelog (categorized entries, release stages)
+  scheme: dated additive releases on the v2 major (no per-release version numbers)
+  current: v2
   api_versioning: uri-path v2 (see lifecycle/archive-technologies-lifecycle.yml)
+  breaking_changes_in_window: 0
 categories:
 - Bug Fixes
 - New Feature
@@ -24,4 +32,154 @@ release_stages:
 product_areas:
 - Reporting
 - Social Listening
-entries: []
+entries:
+- date: '2026-07-20'
+  title: Collections can be grouped via API
+  type: addition
+  breaking: false
+  highlights: >-
+    New moveCollectionToGroup(collectionId: ID!, groupId: ID) mutation plus a matching MCP
+    tool — the API equivalent of the UI's right-click "Add Collection to Group". Previously
+    only Content / Social Profile / Creator Views could be grouped from code. Two read fields
+    came with it so a move can be verified: Collection.group and ViewGroup.collections. Brings
+    the connector to 24 write tools.
+  operations: [moveCollectionToGroup]
+- date: '2026-07-19'
+  title: MCP write actions
+  type: addition
+  breaking: false
+  highlights: >-
+    The MCP server can now write, not just read — 23 write/delete tools alongside the 28 read
+    tools. Collections (create/update/delete + add/remove items), Content / Social Profile /
+    Creator Views (create/update/delete), view groups (create/update/delete, move, reorder),
+    and item actions (uploadItemFromUrl, refetchEngagementBulk). Every write is gated behind a
+    per-call approval in the AI client; deletes only remove the saved view/collection/group.
+- date: '2026-07-15'
+  title: Creator Views via API
+  type: addition
+  breaking: false
+  highlights: >-
+    Creator Views are now fully manageable from code, completing the view-management surface.
+    creatorViews returns every view; createCreatorView / updateCreatorView / deleteCreatorView
+    cover the write side; read a view's creators with creators(presetId:). A Creator View
+    narrows by customAttributeConditions, not by a free-form filters blob (filters is stored
+    but not applied on read).
+  operations: [creatorViews, createCreatorView, updateCreatorView, deleteCreatorView]
+- date: '2026-07-13'
+  title: Views & collections readable everywhere
+  type: addition
+  breaking: false
+  highlights: >-
+    New dedicated read queries: collections (list without accessor filtering), viewGroups
+    (sidebar groups), and socialProfiles (page every social profile with totalCount + cursor
+    pagination). The MCP server gained seven matching read tools — getCollections,
+    getCollection, getCreatorViews, getCreatorView, getSocialProfileView, getViewGroups,
+    getViewGroup — 28 tools total.
+  operations: [collections, viewGroups, socialProfiles]
+- date: '2026-07-10'
+  title: Create and manage views via API
+  type: addition
+  breaking: false
+  highlights: >-
+    Content Views and Social Profile Views became fully manageable from code. New queries
+    contentViews and socialProfileViews return every view with its full filter definition;
+    new mutations create/update/delete cover the write side. Filter inputs match the ones used
+    for reading, so an existing search can be saved as a view in one call. Updates are partial
+    — omitted fields keep their values.
+  operations: [contentViews, socialProfileViews, createContentView, updateContentView, deleteContentView,
+    createSocialProfileView, updateSocialProfileView, deleteSocialProfileView]
+- date: '2026-06-30'
+  title: MCP Server
+  type: addition
+  breaking: false
+  highlights: >-
+    Archive shipped a native Model Context Protocol server — connect Claude, ChatGPT, Cursor,
+    Claude Code, VS Code, Windsurf, Cline and other compatible clients directly to a workspace
+    without writing GraphQL by hand. Two ways to connect: one-click browser sign-in
+    (recommended, no API token to copy) and a config-file path bridging via mcp-remote.
+- date: '2026-06-15'
+  title: TikTok Stories via API
+  type: addition
+  breaking: false
+  highlights: >-
+    TikTok Stories are captured alongside Instagram Stories and queryable via items. New
+    TIKTOK_STORY value on the itemTypes filter. On the response side both Instagram and TikTok
+    Stories come back as type "STORY" — disambiguate by provider.
+  operations: [items]
+- date: '2026-06-15'
+  title: Competitor Brands via API
+  type: addition
+  breaking: false
+  highlights: >-
+    New competitorBrands / competitorBrand queries list the competitors tracked on a
+    workspace; competitorBrandItems(brandId: ID!) returns the content captured for each with
+    the full engagement payload; mediaContents now accepts competitorBrandItemIds. Available
+    on plans that include Competitor Insights.
+  operations: [competitorBrands, competitorBrand, competitorBrandItems, mediaContents]
+- date: '2026-05-20'
+  title: Campaigns via API
+  type: addition
+  breaking: false
+  highlights: >-
+    New campaigns query lists a workspace's campaigns, and a new campaignsIds filter on items
+    pulls the content inside any campaign.
+  operations: [campaigns, items]
+- date: '2026-05-20'
+  title: API Key Self-Service
+  type: addition
+  breaking: false
+  highlights: >-
+    Customers can generate, rotate and disable their own API tokens from Settings -> API — no
+    longer routed through Support or a CSM. Agency plans get one token covering every
+    workspace in the org.
+- date: '2026-05-18'
+  title: Public Archive URLs on items
+  type: addition
+  breaking: false
+  highlights: >-
+    Every item exposes an archivePublicUrl field — a shareable link to the item inside
+    Archive. Works for every item type, including Stories and other content with no permanent
+    originalUrl. Available across all workspaces and plan tiers.
+- date: '2026-05-08'
+  title: Import a post by URL
+  type: addition
+  breaking: false
+  highlights: >-
+    New uploadItemFromUrl mutation — the API equivalent of "Add UGC by Link" in the UI. Pass
+    an Instagram / TikTok / YouTube URL and the post is imported asynchronously.
+  operations: [uploadItemFromUrl]
+- date: '2026-04-23'
+  title: Bulk engagement refresh
+  type: addition
+  breaking: false
+  highlights: >-
+    New refetchEngagementBulk mutation forces a fresh pull of engagement metrics for a set of
+    items, tracked via the operation query. Requires a feature flag.
+  operations: [refetchEngagementBulk, operation]
+coming_soon:
+- title: Outbound webhooks
+  status: coming-soon
+  detail: >-
+    Push events to customer-owned endpoints when new content lands in a workspace or when
+    engagement snapshots refresh — item.captured and item.engagement_updated for v1, with
+    HMAC-signed payloads, idempotency keys and at-least-once delivery. Replaces the daily
+    polling loop most integrations build today. NOT YET SHIPPED — Archive has no webhook or
+    event surface today, so no AsyncAPI/Webhooks artifact is asserted.
+- title: Preset expansion
+  status: coming-soon
+  detail: >-
+    filterPresets returning Social Profile and Creator views (today it returns only Content
+    Views and Collections), and socialProfiles(presetId:) applying a view's filters blob on
+    read. Today a Social Profile View's customAttributeConditions are applied correctly but
+    its filters blob is ignored, so a view narrowing by followersCount or verified returns
+    every profile in the workspace.
+requested:
+  status_checked: '2026-07-28'
+  board: https://feedback.archive.com
+  items:
+  - {title: Creator Search via API with Filters, status: In Review}
+  - {title: Creator Mutations via API for Labels and Collaboration Status, status: In Review}
+  - {title: Outbound Webhooks for Push-Based Event Streaming, status: Planned}
+  - {title: Expose Creator Audience Insights via API and CRM Integrations, status: In Review}
+  - {title: Bulk label + social-profile upload/management via API, status: In Review}
+  - {title: Generate Post Summaries via the API, status: In Review}

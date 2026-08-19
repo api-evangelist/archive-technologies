@@ -1,4 +1,4 @@
-generated: '2026-07-18'
+generated: '2026-08-13'
 method: searched
 source: https://api-docs.archive.com
 description: >-
@@ -20,7 +20,16 @@ idempotency:
   supported: false
   note: >-
     No idempotency-key mechanism is documented for the GraphQL API. Reads are naturally
-    idempotent; mutations are not deduplicated by a client-supplied key.
+    idempotent; mutations are not deduplicated by a client-supplied key. Idempotency keys are
+    announced only for the not-yet-shipped outbound-webhooks feature (docs Roadmap, "Coming
+    soon"), which is a delivery guarantee on Archive's side rather than a request-dedup
+    contract for callers. No Idempotency pointer is emitted in apis.yml for this reason.
+  partial_update_semantics: >-
+    View updates are partial — omitted fields keep their values (update*View mutations).
+  natural_keys:
+    addItemToCollections: >-
+      collectionNames + autoCreate:true is name-addressed rather than id-addressed, so
+      re-running the same call converges on the same Collection instead of creating duplicates.
 pagination:
   style: cursor
   request_params:
@@ -48,19 +57,39 @@ error_envelope:
   rate_limit_errors: HTTP 429 with extensions.code RATE_LIMIT_EXCEEDED
 rate_limiting:
   detail: rate-limits/archive-technologies-rate-limits.yml
-  limit: 5 requests per second per workspace
+  limits:
+    flat_ceiling: 5 requests per second per workspace
+    credit_budget: per-plan burst + per-second refill; 1 credit = 1 ms of backend compute
+  binds: whichever of the two is reached first
+  response_headers:
+    ratelimit-policy: '"<plan>";q=<burst>;w=<window seconds>  e.g. "growth";q=15000;w=60'
+    ratelimit: '"<plan>";r=<credits remaining>;t=<unix time when full>'
+    Retry-After: seconds to wait, returned on 429
   breach_status: 429
   breach_code: RATE_LIMIT_EXCEEDED
   guidance: >-
-    Retry-after seconds are included in the error message. Docs recommend proactive
-    client-side traffic shaping to 5 RPS per workspace rather than reactive retries.
+    Every response carries the IETF ratelimit / ratelimit-policy headers, so a client never
+    has to discover a limit through an error: read `r` (credits remaining) and self-throttle
+    against it. The quoted plan name in the header also tells a caller which plan tier it is
+    on. Retry-After is honoured on 429. Docs recommend a client-side token bucket set to the
+    plan's refill rate and shared across processes hitting the same workspace.
+  shared_budget_note: >-
+    The hosted MCP server draws on the SAME per-workspace budget — an agent working a long
+    task competes for credits with the workspace's own integrations.
 versioning:
   scheme: uri-path
   current: v2
   detail: lifecycle/archive-technologies-lifecycle.yml
 query_constraints:
   max_query_depth: 10
+  max_page_size: 100
   introspection: disabled in production (no __schema queries)
+  schema_of_record: graphql/archive-technologies.graphql
+date_handling:
+  format: RFC 3339 UTC only — must end with Z, +00:00 or -00:00
+  note: >-
+    A real offset such as -03:00 is rejected; convert to UTC first. The rejection arrives
+    under extensions.code INTERNAL_SERVER_ERROR even though the input is at fault.
 agent_notes:
   source: https://api-docs.archive.com/guides/for-coding-agents
   guidance:

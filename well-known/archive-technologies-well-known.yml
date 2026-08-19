@@ -1,20 +1,27 @@
-generated: '2026-07-18'
+generated: '2026-08-13'
 method: searched
 source: live probes of /.well-known/ on Archive hosts
+checked: '2026-08-13'
 description: >-
   Results of probing the /.well-known/ discovery surface for the Archive API host
-  (https://app.archive.com) and the marketing host (https://archive.com). Status is the
-  HTTP code observed at fetch time. Two OAuth discovery documents were served as real JSON
-  and saved verbatim; they describe Archive's OAuth authorization server and the MCP
-  protected resource (RFC 8414 + RFC 9728), used by the hosted MCP server.
+  (https://app.archive.com), the marketing host (https://archive.com) and the documentation
+  host (https://api-docs.archive.com). Status is the HTTP code observed at fetch time
+  (re-verified 2026-08-13). Two OAuth discovery documents are served as real JSON on the API
+  host and are saved verbatim; they describe Archive's OAuth authorization server (RFC 8414)
+  and the MCP protected resource (RFC 9728), and are what lets an MCP client register itself
+  dynamically with no client id or secret. Everything else 404s, including both A2A agent-card
+  paths on all three hosts — no AgentCard pointer is emitted, and no agent card is authored.
+  Note the 404s on archive.com and api-docs.archive.com return HTML, not documents.
 hosts:
 - host: https://app.archive.com
   documents:
   - path: /.well-known/oauth-authorization-server
     status: 200
+    content_type: application/json
     file: archive-technologies-oauth-authorization-server.json
   - path: /.well-known/oauth-protected-resource
     status: 200
+    content_type: application/json
     file: archive-technologies-oauth-protected-resource.json
   - path: /.well-known/security.txt
     status: 404
@@ -22,11 +29,48 @@ hosts:
     status: 404
   - path: /.well-known/api-catalog
     status: 404
+  - path: /.well-known/ai-plugin.json
+    status: 404
+  - path: /.well-known/agent-card.json
+    status: 404
+  - path: /.well-known/agent.json
+    status: 404
 - host: https://archive.com
   documents:
   - path: /.well-known/security.txt
     status: 404
+  - path: /.well-known/openid-configuration
+    status: 404
   - path: /.well-known/oauth-authorization-server
+    status: 404
+  - path: /.well-known/oauth-protected-resource
+    status: 404
+  - path: /.well-known/api-catalog
     status: 404
   - path: /.well-known/ai-plugin.json
     status: 404
+  - path: /.well-known/agent-card.json
+    status: 404
+  - path: /.well-known/agent.json
+    status: 404
+- host: https://api-docs.archive.com
+  documents:
+  - path: /.well-known/security.txt
+    status: 404
+  - path: /.well-known/openid-configuration
+    status: 404
+  - path: /.well-known/oauth-authorization-server
+    status: 404
+  - path: /.well-known/oauth-protected-resource
+    status: 404
+  - path: /.well-known/api-catalog
+    status: 404
+  - path: /.well-known/ai-plugin.json
+    status: 404
+  - path: /.well-known/agent-card.json
+    status: 404
+notes:
+- >-
+  No RFC 9116 security.txt is served on any host, and no vulnerability-disclosure or trust
+  page was found by probe (probe-security-programs.py: vdp=none trust=none), so no SecurityTxt,
+  Security or TrustCenter pointer is emitted.

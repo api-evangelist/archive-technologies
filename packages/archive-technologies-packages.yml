@@ -1,0 +1,45 @@
+generated: '2026-08-13'
+method: searched
+source: https://api-docs.archive.com/getting-started
+description: >-
+  Archive ships NO first-party client libraries. This is a recorded absence, not an unchecked
+  gap. Archive's own Getting Started page names the two supported ways to call the API — the
+  hosted MCP server, or "any API client that supports GraphQL — such as Postman, Insomnia, or
+  Hoppscotch" — and documents raw HTTP headers rather than an SDK install. No SDK, CLI or
+  client-library link appears anywhere in the documentation, there is no Archive GitHub
+  organization (api.github.com/orgs/archive-com -> 404), and no first-party package was found
+  on any registry. No SDKs pointer is emitted in apis.yml because there is no SDK to point at.
+packages: []
+package_count: 0
+official_sdk_count: 0
+registries_searched:
+- registry: npm
+  endpoint: https://registry.npmjs.org/-/v1/search
+  result: no first-party Archive Technologies package (matches are unrelated file-archiving libraries)
+  checked: '2026-08-13'
+- registry: pypi
+  endpoint: https://pypi.org/pypi/<name>/json
+  queried: [archive-com, archivecom, archive-api]
+  result: 404 on every candidate
+  checked: '2026-08-13'
+- registry: github
+  endpoint: https://api.github.com/orgs/archive-com
+  result: 404 — no Archive Technologies GitHub organization
+  checked: '2026-08-13'
+- registry: rubygems / crates.io / nuget / maven / pkg.go.dev
+  result: not searched individually — no SDK is referenced anywhere in Archive's docs to search for
+  checked: '2026-08-13'
+client_guidance:
+  documented_clients: [Postman, Insomnia, Hoppscotch]
+  note: >-
+    Archive documents generic GraphQL clients, not a published Postman collection or
+    workspace — no importable collection URL is offered, so no Postman pointer is emitted.
+  transport: 'POST https://app.archive.com/api/v2 with Authorization: Bearer <token> and WORKSPACE-ID: <uuid>'
+  schema: graphql/archive-technologies.graphql
+  mcp_bridge:
+    package: mcp-remote
+    official: false
+    note: >-
+      Archive's connecting guide points config-file MCP clients at the community `mcp-remote`
+      bridge to reach the hosted server. That is a third-party shim, not an Archive package,
+      and is recorded here only so the dependency is visible.

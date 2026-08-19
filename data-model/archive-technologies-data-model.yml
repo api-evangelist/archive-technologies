@@ -1,13 +1,31 @@
-generated: '2026-07-18'
+generated: '2026-08-13'
 method: searched
-source: https://api-docs.archive.com
+source: https://app.archive.com/api/v2/docs
+sources:
+- https://app.archive.com/api/v2/docs
+- https://api-docs.archive.com
+schema: graphql/archive-technologies.graphql
+schema_stats:
+  operations: 53
+  queries: 29
+  mutations: 24
+  types: 135
+  objects: 72
+  input_objects: 27
+  enums: 25
+  unions: 1
+  custom_scalars: 5
 description: >-
-  Entity model of the Archive GraphQL API, derived from the documented query/mutation
-  surface and object reference (api-docs.archive.com). Archive organizes all data under a
-  Workspace; creators, social profiles, UGC items, engagement history, saved views,
-  collections, campaigns, and competitor brands hang off it. Relationships are inferred from
-  the documented queries (e.g. socialProfiles belong to creators; engagementHistory belongs
-  to items/social profiles; views group into viewGroups).
+  Entity model of the Archive GraphQL API. The entity/relationship graph below is read from
+  the provider's published schema reference (app.archive.com/api/v2/docs) and the API
+  documentation; the full SDL is captured at graphql/archive-technologies.graphql. Archive
+  organizes all data under a Workspace; creators, social profiles, UGC items, engagement
+  history, saved views, collections, campaigns, and competitor brands hang off it. Connections
+  follow the Relay-style shape (Connection / Edge / nodes / pageInfo / totalCount), and
+  MediaContent is a union of Image and Video. Relationships are read from the documented
+  queries and schema fields (e.g. socialProfiles belong to creators; engagementHistory belongs
+  to items; views group into viewGroups; Collection.group / ViewGroup.collections since
+  2026-07-20).
 entities:
 - name: Workspace
   description: Top-level tenant; every token/query is scoped to a workspace via WORKSPACE-ID.
