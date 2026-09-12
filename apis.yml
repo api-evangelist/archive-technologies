@@ -104,6 +104,8 @@ apis:
   - type: ToolCrosswalk
     url: mcp/archive-technologies-tool-crosswalk.yml
 common:
+- type: Website
+  url: https://www.archive.com/
 - type: DomainSecurity
   url: security/archive-technologies-domain-security.yml
 - type: DeveloperPortal
