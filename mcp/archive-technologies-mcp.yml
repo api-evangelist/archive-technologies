@@ -7,23 +7,18 @@ sources:
 - https://api-docs.archive.com/mcp/connecting
 - https://api-docs.archive.com/mcp/custom-connector
 - https://app.archive.com/.well-known/oauth-protected-resource
-description: >-
-  Archive operates an official hosted remote MCP server at https://app.archive.com/api/v2/mcp,
-  discoverable via RFC 9728 protected-resource metadata
-  (well-known/archive-technologies-oauth-protected-resource.json) and authorized by the OAuth
-  authorization server at https://app.archive.com (RFC 8414 metadata in
-  well-known/archive-technologies-oauth-authorization-server.json). The server is
-  OAuth-protected: authorization_code + refresh_token grants, PKCE S256, dynamic client
-  registration (/oauth/register) and a single "mcp" scope; no client id/secret is issued to
-  connector authors. Archive publishes the complete tool catalog at
-  https://api-docs.archive.com/mcp — 53 tools, 29 read and 24 write — and states the page is
-  kept in sync with the live server. The tool list below is transcribed verbatim from that
-  page. A live tools/list call is NOT anonymous: it returns HTTP 401 with a
-  WWW-Authenticate Bearer challenge pointing at the protected-resource metadata, so per-tool
-  inputSchema requires an authenticated introspection and is not asserted here. Each tool
-  maps to a GraphQL query or mutation on the same API and spends the same per-workspace
-  credit budget (see mcp/archive-technologies-tool-crosswalk.yml and
-  rate-limits/archive-technologies-rate-limits.yml).
+description: 'Archive operates an official hosted remote MCP server at https://app.archive.com/api/v2/mcp,
+  discoverable via RFC 9728 protected-resource metadata (well-known/archive-technologies-oauth-protected-resource.json)
+  and authorized by the OAuth authorization server at https://app.archive.com (RFC 8414 metadata in well-known/archive-technologies-oauth-authorization-server.json).
+  The server is OAuth-protected: authorization_code + refresh_token grants, PKCE S256, dynamic client
+  registration (/oauth/register) and a single "mcp" scope; no client id/secret is issued to connector
+  authors. Archive publishes the complete tool catalog at https://api-docs.archive.com/mcp — 53 tools,
+  29 read and 24 write — and states the page is kept in sync with the live server. The tool list below
+  is transcribed verbatim from that page. A live tools/list call is NOT anonymous: it returns HTTP 401
+  with a WWW-Authenticate Bearer challenge pointing at the protected-resource metadata, so per-tool inputSchema
+  requires an authenticated introspection and is not asserted here. Each tool maps to a GraphQL query
+  or mutation on the same API and spends the same per-workspace credit budget (see mcp/archive-technologies-tool-crosswalk.yml
+  and rate-limits/archive-technologies-rate-limits.yml).'
 server:
   name: archive
   transport: http
@@ -43,59 +38,49 @@ server:
     scopes:
     - mcp
     dynamic_client_registration: true
-    note: >-
-      Connector authors never supply an OAuth client id or secret — Archive publishes its
-      OAuth metadata and supports dynamic client registration, so the client registers itself.
+    note: Connector authors never supply an OAuth client id or secret — Archive publishes its OAuth metadata
+      and supports dynamic client registration, so the client registers itself.
 deployment:
   mode: remote
   endpoint: https://app.archive.com/api/v2/mcp
-  auth: oauth
   verified: probed
   probe: gated
-  probe_detail: >-
-    POST tools/list (2026-08-13) returned HTTP 401
-    {"jsonrpc":"2.0","id":1,"error":{"code":-32001,"message":"Authentication required"}}
-    with www-authenticate: Bearer resource_metadata="https://app.archive.com/.well-known/oauth-protected-resource".
-  checked: '2026-08-13'
+  checked: '2026-08-12'
+  source: catalog MCP census
 access:
-  scoping: >-
-    Every tool is workspace-scoped — it acts on the workspace the client is connected to, or
-    the one the user names.
-  consent: >-
-    Browser sign-in ends on Archive's consent screen, where the user chooses read-only vs.
-    full access and which workspaces to grant. Both default to the permissive option.
-  approval: >-
-    Every write tool runs behind a per-call approval in the AI client (Always allow / Ask /
-    Never). Deletes only remove the saved view, collection or group — never the underlying
-    content, creators or media.
+  scoping: Every tool is workspace-scoped — it acts on the workspace the client is connected to, or the
+    one the user names.
+  consent: Browser sign-in ends on Archive's consent screen, where the user chooses read-only vs. full
+    access and which workspaces to grant. Both default to the permissive option.
+  approval: Every write tool runs behind a per-call approval in the AI client (Always allow / Ask / Never).
+    Deletes only remove the saved view, collection or group — never the underlying content, creators or
+    media.
   identity_modes:
   - mode: browser-sign-in
     acts_as: the individual user; each person authorizes their own connection
     token: none
-    clients: [Claude, Claude Code, ChatGPT]
+    clients:
+    - Claude
+    - Claude Code
+    - ChatGPT
   - mode: config-file + API token
     acts_as: the whole workspace, not a person
     token: workspace API token stored in an MCP config file
     clients: any client that reads an MCP config file (including Claude Desktop, Claude Code)
-  directory_listing: >-
-    Archive is not yet listed in the Claude or ChatGPT connector directories; both require a
-    custom connector created once per workspace (name + server URL only).
-  errors: >-
-    Errors are returned as text, not exceptions — a rate-limited call comes back as
-    "Rate limit exceeded. Retry after N seconds." and a domain rejection on a write comes
-    back in userErrors (the write did not happen).
-  cost: >-
-    MCP calls spend the same per-workspace credit budget as the GraphQL API. There is no
-    separate MCP allowance.
+  directory_listing: Archive is not yet listed in the Claude or ChatGPT connector directories; both require
+    a custom connector created once per workspace (name + server URL only).
+  errors: Errors are returned as text, not exceptions — a rate-limited call comes back as "Rate limit
+    exceeded. Retry after N seconds." and a domain rejection on a write comes back in userErrors (the
+    write did not happen).
+  cost: MCP calls spend the same per-workspace credit budget as the GraphQL API. There is no separate
+    MCP allowance.
 tool_counts:
   total: 53
   read: 29
   write: 24
 tools_source: https://api-docs.archive.com/mcp
-tools_note: >-
-  Names and descriptions are verbatim from Archive's published tool catalog. inputSchema is
-  not enumerated — the live tools/list requires OAuth. Backing GraphQL operations are bound
-  in mcp/archive-technologies-tool-crosswalk.yml.
+tools_note: Names and descriptions are verbatim from Archive's published tool catalog. inputSchema is
+  not enumerated — the live tools/list requires OAuth. Backing GraphQL operations are bound in mcp/archive-technologies-tool-crosswalk.yml.
 tools:
 - name: getWorkspaces
   category: Workspace & schema
@@ -108,8 +93,7 @@ tools:
 - name: getCustomAttributeSchemas
   category: Workspace & schema
   access: read
-  description: >-
-    Custom-attribute definitions for ITEM or CREATOR — used to interpret customAttributes and
+  description: Custom-attribute definitions for ITEM or CREATOR — used to interpret customAttributes and
     to build attribute filters.
 - name: getFilterPresets
   category: Workspace & schema
@@ -118,8 +102,7 @@ tools:
 - name: searchItems
   category: Content & media
   access: read
-  description: >-
-    Search archived content (Instagram, TikTok, YouTube) with the full filter set, sorting,
+  description: Search archived content (Instagram, TikTok, YouTube) with the full filter set, sorting,
     and presetId.
 - name: getMediaContents
   category: Content & media
@@ -136,8 +119,7 @@ tools:
 - name: getEngagementHistory
   category: Content & media
   access: read
-  description: >-
-    The engagement-snapshot timeline (likes, comments, views, EMV, ...) for a single item.
+  description: The engagement-snapshot timeline (likes, comments, views, EMV, ...) for a single item.
 - name: searchCreators
   category: Creators & social profiles
   access: read
@@ -149,15 +131,13 @@ tools:
 - name: getSocialProfile
   category: Creators & social profiles
   access: read
-  description: >-
-    One social profile by id, or by handle + provider. With fallback: true it fetches live
-    from the platform even if the profile isn't archived yet.
+  description: 'One social profile by id, or by handle + provider. With fallback: true it fetches live
+    from the platform even if the profile isn''t archived yet.'
 - name: getSocialProfiles
   category: Creators & social profiles
   access: read
-  description: >-
-    Page through every social profile in the workspace, with totalCount and cursor
-    pagination. Narrow by a saved view with preset_id.
+  description: Page through every social profile in the workspace, with totalCount and cursor pagination.
+    Narrow by a saved view with preset_id.
 - name: getContentViews
   category: Views & collections
   access: read
@@ -269,9 +249,8 @@ tools:
 - name: createCreatorView
   category: Views
   access: write
-  description: >-
-    Create a Creator View. Creator Views narrow by customAttributeConditions, not by the
-    filters blob.
+  description: Create a Creator View. Creator Views narrow by customAttributeConditions, not by the filters
+    blob.
 - name: updateCreatorView
   category: Views
   access: write
@@ -307,9 +286,8 @@ tools:
 - name: moveCollectionToGroup
   category: View groups
   access: write
-  description: >-
-    Move a Collection into or out of a group — the API equivalent of the UI's right-click
-    "Add Collection to Group". Takes a collection_id, not a view_id.
+  description: Move a Collection into or out of a group — the API equivalent of the UI's right-click "Add
+    Collection to Group". Takes a collection_id, not a view_id.
 - name: reorderViewsInGroup
   category: View groups
   access: write
@@ -321,7 +299,6 @@ tools:
 - name: refetchEngagementBulk
   category: Items
   access: write
-  description: >-
-    Queue a bulk engagement-metrics refresh for a set of items; track it with getOperation.
+  description: Queue a bulk engagement-metrics refresh for a set of items; track it with getOperation.
     Spends credits and requires a feature flag.
 help_center: https://help.archive.com/en/
