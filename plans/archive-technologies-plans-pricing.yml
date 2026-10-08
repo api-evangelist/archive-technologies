@@ -115,3 +115,39 @@ notes:
   A request costs a fixed amount for the search plus a small amount per record, so the
   published cost table is expressed per page of 100. See
   rate-limits/archive-technologies-rate-limits.yml for the per-request costs.
+x-canonical:
+  generated: '2026-10-08'
+  vocabulary: all/0-working/economics/plans-canonical.yml
+  models: []
+  units: []
+  plans:
+  - name: Startup 2026
+    access: other
+    model: unstated
+    model_how: derived
+    units: []
+    periods: []
+  - name: Growth 2026
+    access: other
+    model: unstated
+    model_how: derived
+    units: []
+    periods: []
+  - name: Agency 2026
+    access: other
+    model: unstated
+    model_how: derived
+    units: []
+    periods: []
+  - name: Enterprise 2026
+    access: other
+    model: unstated
+    model_how: derived
+    units: []
+    periods: []
+  - name: Base / fallback
+    access: other
+    model: unstated
+    model_how: derived
+    units: []
+    periods: []
