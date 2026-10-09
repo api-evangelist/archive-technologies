@@ -302,3 +302,16 @@ tools:
   description: Queue a bulk engagement-metrics refresh for a set of items; track it with getOperation.
     Spends credits and requires a feature flag.
 help_center: https://help.archive.com/en/
+rfc9728:
+  endpoint: https://app.archive.com/api/v2/mcp
+  metadata_url: https://app.archive.com/.well-known/oauth-protected-resource
+  discovered_via: WWW-Authenticate resource_metadata on an anonymous POST initialize
+  fetched: '2026-09-25'
+  http_status: 200
+  content_type: application/json
+  document:
+    resource: https://app.archive.com/api/v2/mcp
+    authorization_servers:
+    - https://app.archive.com
+    bearer_methods_supported:
+    - header
